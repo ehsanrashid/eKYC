@@ -11,8 +11,8 @@ eKYCEngine::eKYCEngine() : running_(false) {
 
         subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
-        // publication_ = aeron_->create_publication(PublicationChannel,  //
-        //                                           PublicationStreamId);
+        publication_ = aeron_->create_publication(PublicationChannel,  //
+                                                  PublicationStreamId);
 
         running_ = true;
     } catch (const std::exception& e) {

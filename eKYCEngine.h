@@ -4,19 +4,20 @@
 #include <memory>
 #include <string>
 #include <thread>
+
+#include "include/aeron_wrapper.h"
 #include "logger.h"
-#include "include/aeron_wrapper.h" 
 
 class eKYCEngine {
    public:
     static constexpr const char* AeronDir = "";
 
     static constexpr const char* SubscriptionChannel =
-        "aeron:udp?endpoint=172.17.10.58:50000";
+        "aeron:udp?endpoint=0.0.0.0:50000";
     static constexpr int SubscriptionStreamId = 1001;
 
     static constexpr const char* PublicationChannel =
-        "aeron:udp?endpoint=239.101.9.9:40124";
+        "aeron:udp?endpoint=0.0.0.0:40124";
     static constexpr int PublicationStreamId = 100;
 
     eKYCEngine();

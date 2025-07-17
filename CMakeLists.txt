@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${aeron_SOURCE_DIR}/aeron-client/src/main/cpp
     ${aeron_SOURCE_DIR}/aeron-driver/src/main/c
+    /usr/local/include
 )
 
 # Link against Aeron libraries
@@ -38,4 +39,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
     aeron_driver
     aeron_client
+    /usr/local/lib/libloggerlib.a
 )

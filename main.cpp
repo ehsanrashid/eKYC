@@ -6,10 +6,10 @@
 #include <memory>
 #include <string>
 #include <thread>
-
 #include "eKYCEngine.h"
 
 int main(int argc, char** argv) {
+    
     std::atomic<bool> keepRunning{true};
 
     // Start input monitoring thread

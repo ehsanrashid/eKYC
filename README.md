@@ -104,7 +104,3 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
   The project currently uses the Aeron C++ API, which will be removed in Aeron 1.50.0. Plan to migrate to the C++ Wrapper API in the future.
 
 ---
-
-## License
-
-Specify your license here. 

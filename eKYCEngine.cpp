@@ -13,10 +13,10 @@ eKYCEngine::eKYCEngine()
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         logger_.info("Connected to Aeron Media Driver...");
-        subscription_ = aeron_->create_subscription(SubscriptionChannel,
+        subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
-        publication_ =
-            aeron_->create_publication(PublicationChannel, PublicationStreamId);
+        publication_ = aeron_->create_publication(PublicationChannel,  //
+                                                  PublicationStreamId);
         running_ = true;
     } catch (const std::exception& e) {
         logger_.info(std::string("Error: ") + e.what());

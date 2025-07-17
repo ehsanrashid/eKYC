@@ -35,7 +35,7 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
    ```
 
 2. **Install the logger library:**
-   - Follow the instructions at [https://github.com/MahmoudAbdelRahman/logger](https://github.com/MahmoudAbdelRahman/logger) to build and install the logger.
+   - Follow the instructions at [https://github.com/Huzaifa309/loggerLib](https://github.com/Huzaifa309/loggerLib) to build and install the logger.
    - Ensure the header file is at `/usr/local/include/logger.h` and the static library is at `/usr/local/lib/libloggerlib.a`.
 
 3. **Build the project using CMake:**
@@ -66,10 +66,10 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 
 - **Aeron Channels and Streams:**  
   These are hardcoded in `eKYCEngine.h`:
-  - Subscription: `aeron:udp?endpoint=172.17.10.58:50000`, Stream ID: `1001`
+  - Subscription: `aeron:udp?endpoint=0.0.0.0:50000`, Stream ID: `1001`
   - Publication: `aeron:udp?endpoint=239.101.9.9:40124`, Stream ID: `100`
 - **Log File:**  
-  Logs are written to `Gateway_JSON.log` in the working directory, with a max size of 10 MB.
+  Logs are written to `Gateway_JSON_<timestamp>.log` in the working directory, with a max size of 10 MB.
 
 ---
 

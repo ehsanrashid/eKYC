@@ -30,7 +30,7 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 
 1. **Clone the repository** and enter the project directory:
    ```sh
-   git clone <your-repo-url>
+   git clone https://github.com/ehsanrashid/eKYC
    cd eKYC
    ```
 

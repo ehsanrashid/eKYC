@@ -4,11 +4,9 @@
 #include <exception>
 #include <iostream>
 
-#include "logger.h"
-#include "loggerwrapper.h"
 
 eKYCEngine::eKYCEngine()
-    : running_(false), logger_("Gateway_JSON.log", 10 * 1024 * 1024) {
+    : running_(false), logger_("logs/Gateway_JSON.log", 10 * 1024 * 1024) {
     logger_.set_log_level(LogLevel::DEBUG);
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
@@ -40,6 +38,7 @@ void eKYCEngine::stop() {
     if (backgroundPoller_) {
         backgroundPoller_->stop();
     }
+
     running_ = false;
     logger_.info("eKYC engine stopped.");
 }

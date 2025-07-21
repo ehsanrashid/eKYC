@@ -24,9 +24,10 @@ FetchContent_MakeAvailable(aeron)
 # Collect source files
 file(GLOB SOURCE_FILES "*.cpp" )
 
-# Create your executable
+# Create a single eKYC executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-# Include Aeron headers
+
+# Include Aeron headers and project includes
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${aeron_SOURCE_DIR}/aeron-client/src/main/cpp
     ${aeron_SOURCE_DIR}/aeron-driver/src/main/c
@@ -34,8 +35,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/output/my_app_messages
 )
-
-# Link against Aeron libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
     aeron_driver

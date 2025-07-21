@@ -41,5 +41,4 @@ class eKYCEngine {
         backgroundPoller_;
 
     std::atomic<bool> running_;
-    
 };

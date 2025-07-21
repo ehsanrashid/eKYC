@@ -4,10 +4,7 @@
 #include <exception>
 #include <iostream>
 
-
-eKYCEngine::eKYCEngine()
-    : running_(false)
-    {
+eKYCEngine::eKYCEngine() : running_(false) {
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info("Connected to Aeron Media Driver...");

@@ -6,18 +6,18 @@
 
 
 eKYCEngine::eKYCEngine()
-    : running_(false), logger_("logs/Gateway_JSON.log", 10 * 1024 * 1024) {
-    logger_.set_log_level(LogLevel::DEBUG);
+    : running_(false)
+    {
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
-        logger_.info("Connected to Aeron Media Driver...");
+        Log.info("Connected to Aeron Media Driver...");
         subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
         publication_ = aeron_->create_publication(PublicationChannel,  //
                                                   PublicationStreamId);
         running_ = true;
     } catch (const std::exception& e) {
-        logger_.info(std::string("Error: ") + e.what());
+        Log.info(std::string("Error: ") + e.what());
     }
 }
 
@@ -25,7 +25,7 @@ eKYCEngine::~eKYCEngine() { stop(); }
 
 void eKYCEngine::start() {
     if (!running_) return;
-    logger_.info("Starting eKYC engine...");
+    Log.info("Starting eKYC engine...");
     // Start background msg processing
     backgroundPoller_ = subscription_->start_background_polling(
         [this](const aeron_wrapper::FragmentData& fragmentData) {
@@ -40,14 +40,14 @@ void eKYCEngine::stop() {
     }
 
     running_ = false;
-    logger_.info("eKYC engine stopped.");
+    Log.info("eKYC engine stopped.");
 }
 
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData& fragmentData) {
     try {
-        logger_.debug("msg: " + fragmentData.as_string());
+        Log.debug("msg: " + fragmentData.as_string());
     } catch (const std::exception& e) {
-        logger_.error(std::string("Error processing message: ") + e.what());
+        Log.error(std::string("Error processing message: ") + e.what());
     }
 }

@@ -8,6 +8,8 @@
 #include "include/aeron_wrapper.h"
 #include "logger.h"
 
+extern Logger Log;
+
 class eKYCEngine {
    public:
     static constexpr const char* AeronDir = "";
@@ -39,5 +41,5 @@ class eKYCEngine {
         backgroundPoller_;
 
     std::atomic<bool> running_;
-    Logger logger_;
+    
 };

@@ -1,4 +1,4 @@
-
+//Cpp Standard Header Lib
 #include <atomic>
 #include <chrono>
 #include <exception>
@@ -7,11 +7,18 @@
 #include <string>
 #include <thread>
 
+//Local Headers include
 #include "eKYCEngine.h"
+#include "logger.h"
 
-int main(int argc, char** argv) {
+
+Logger Log("logs/Gateway_JSON.log", 10 * 1024 * 1024); 
+
+
+int main(int argc, char** argv) 
+{
     std::atomic<bool> keepRunning{true};
-
+    Log.set_log_level(LogLevel::DEBUG);
     // Start input monitoring thread
     std::thread inputThread([&keepRunning]() {
         std::cin.get();  // Wait for Enter key

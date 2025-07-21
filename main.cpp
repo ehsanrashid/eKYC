@@ -14,8 +14,9 @@
 Logger Log("logs/Gateway_JSON.log", 10 * 1024 * 1024);
 
 int main(int argc, char** argv) {
-    std::atomic<bool> keepRunning{true};
     Log.set_log_level(LogLevel::DEBUG);
+
+    std::atomic<bool> keepRunning{true};
     // Start input monitoring thread
     std::thread inputThread([&keepRunning]() {
         std::cin.get();  // Wait for Enter key
@@ -37,7 +38,7 @@ int main(int argc, char** argv) {
 
         return 0;
     } catch (const std::exception& e) {
-        Log.error("Error: " + std::string(e.what()));
+        Log.error(std::string("Error: ") + e.what());
         return 1;
     }
 }

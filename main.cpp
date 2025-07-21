@@ -36,8 +36,7 @@ int main(int argc, char** argv)
 
         if (inputThread.joinable()) inputThread.join();
 
-        eKYC->stop();
-        
+        eKYC->stop();        
         return 0;
     } catch (const std::exception& e) {
         Log.error(std::string("Error: ") + e.what());

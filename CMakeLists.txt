@@ -41,4 +41,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     aeron_driver
     aeron_client
     /usr/local/lib/libloggerlib.a
+    pthread
 )

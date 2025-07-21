@@ -11,9 +11,10 @@
 #include "eKYCEngine.h"
 #include "logger.h"
 
-Logger Log("logs/Gateway_JSON.log", 10 * 1024 * 1024);
+Logger Log("logs/Gateway_SBE.log", 10 * 1024 * 1024);
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) 
+{
     Log.set_log_level(LogLevel::DEBUG);
 
     std::atomic<bool> keepRunning{true};
@@ -28,6 +29,7 @@ int main(int argc, char** argv) {
 
         eKYC->start();
         eKYC->run_sender();
+
         while (keepRunning) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }

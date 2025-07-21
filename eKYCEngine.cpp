@@ -73,10 +73,10 @@ void eKYCEngine::run_sender()
     std::signal(SIGTERM, signalHandlerSender);
     Log.info("Starting Aeron Sender on " + std::string(PublicationChannel));
     try {
-        std::string aeronDir = "/dev/shm/aeron-huzaifa";
+        // std::string aeronDir = "/dev/shm/aeron-huzaifa";
         std::string channel = "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true";
         std::int32_t streamId = 1001;
-        aeron_wrapper::Aeron aeronClient(aeronDir);
+        aeron_wrapper::Aeron aeronClient; // Use default directory
         auto publication = aeronClient.create_publication(channel, streamId);
         if (!publication) {
             std::cerr << "Failed to create publication" << std::endl;
@@ -127,13 +127,13 @@ void eKYCEngine::run_receiver() {
     std::signal(SIGTERM, signalHandlerReceiver);
     Log.info("Starting Aeron Receiver on " + std::string(SubscriptionChannel));
     try {
-        std::string aeronDir = "/dev/shm/aeron-huzaifa";
+        // std::string aeronDir = "/dev/shm/aeron-huzaifa";
         std::string channel = "aeron:udp?endpoint=0.0.0.0:50000|reliable=true";
         std::int32_t streamId = 1001;
-        aeron_wrapper::Aeron aeronClient(aeronDir);
+        aeron_wrapper::Aeron aeronClient; // Use default directory
         auto subscription = aeronClient.create_subscription(channel, streamId);
         if (!subscription) {
-            Log.error("Failed to create subscription");
+            std::cerr << "Failed to create subscription" << std::endl;
             return;
         }
         Log.info("Subscription created successfully.");

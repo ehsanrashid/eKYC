@@ -8,8 +8,8 @@
 #include "Context.h"
 #include "Publication.h"
 #include "concurrent/AtomicBuffer.h"
-#include "output/my_app_messages/IdentityMessage.h"
-#include "output/my_app_messages/MessageHeader.h"
+#include "IdentityMessage.h"
+#include "MessageHeader.h"
 
 std::atomic<bool> running{true};
 void signalHandler(int signal) {

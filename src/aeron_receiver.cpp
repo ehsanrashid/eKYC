@@ -8,8 +8,8 @@
 #include "Context.h"
 #include "Subscription.h"
 #include "FragmentAssembler.h"
-#include "output/my_app_messages/IdentityMessage.h"
-#include "output/my_app_messages/MessageHeader.h"
+#include "IdentityMessage.h"
+#include "MessageHeader.h"
 void fragmentHandler(const aeron::AtomicBuffer& buffer,
                      aeron::util::index_t offset,
                      aeron::util::index_t length,

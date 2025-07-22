@@ -9,8 +9,7 @@
 #include <vector>
 #include <csignal>
 #include <atomic>
-
-
+#
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
@@ -73,14 +72,14 @@ void eKYCEngine::process_message(const aeron_wrapper::FragmentData& fragmentData
                 Log.info_fast("Packet # {} received successfully!",receiving_packets_);
                 receiving_packets_++;
                 
-                
+
                 
             } else {
-                std::cerr << "[Decoder] Unexpected template ID: " << msgHeader.templateId() << std::endl;
+                Log.error("[Decoder] Unexpected template ID: " + msgHeader.templateId());
             }
             
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        Log.error(std::string("Error: ") + e.what());
     }
 }
 

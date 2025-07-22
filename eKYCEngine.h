@@ -10,8 +10,9 @@
 
 extern Logger Log;
 
-class eKYCEngine {
-   public:
+class eKYCEngine 
+{
+    public:
     static constexpr const char* AeronDir = "";
 
     static constexpr const char* SubscriptionChannel =
@@ -31,7 +32,6 @@ class eKYCEngine {
     void stop();
 
     static void run_sender();
-    static void run_receiver();
 
    private:
     void process_message(const aeron_wrapper::FragmentData& fragmentData);

@@ -28,7 +28,7 @@ int main(int argc, char** argv)
         auto eKYC = std::make_unique<eKYCEngine>();
 
         eKYC->start();
-        eKYC->run_sender();
+        // eKYC->run_sender();
 
         while (keepRunning) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));

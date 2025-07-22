@@ -5,7 +5,7 @@
 #include <string>
 #include <thread>
 
-#include "include/aeron_wrapper.h"
+#include "../include/aeron_wrapper.h"
 #include "logger.h"
 
 extern Logger Log;

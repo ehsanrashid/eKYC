@@ -22,7 +22,7 @@ set(CXX_WARNINGS_AS_ERRORS OFF CACHE BOOL "Disable warnings as errors")
 FetchContent_MakeAvailable(aeron)
 
 # Collect source files
-file(GLOB SOURCE_FILES "*.cpp")
+file(GLOB SOURCE_FILES "src/*.cpp")
 
 # Create your executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})

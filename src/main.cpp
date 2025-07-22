@@ -8,7 +8,7 @@
 #include <thread>
 
 // Local Headers include
-#include "eKYCEngine.h"
+#include "../include/eKYCEngine.h"
 #include "logger.h"
 
 Logger Log("logs/Gateway_JSON.log", 10 * 1024 * 1024);

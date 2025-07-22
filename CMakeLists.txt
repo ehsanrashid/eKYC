@@ -21,11 +21,19 @@ set(CXX_WARNINGS_AS_ERRORS OFF CACHE BOOL "Disable warnings as errors")
 
 FetchContent_MakeAvailable(aeron)
 
+
+# Find libpqxx
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PQXX REQUIRED libpqxx)
+
+
 # Collect source files
 file(GLOB SOURCE_FILES "*.cpp" )
 
+
 # Create a single eKYC executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+
 
 # Include Aeron headers and project includes
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -38,8 +46,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
-    aeron_driver
-    aeron_client
+    ${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
     /usr/local/lib/libloggerlib.a
+    aeron_client
+    ${PQXX_LIBRARIES}
+    aeron_driver
     pthread
 )

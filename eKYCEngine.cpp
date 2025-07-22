@@ -13,6 +13,9 @@
 #include "helper.h"
 #include "include/pg_wrapper.h"
 
+// Use the SBE namespace
+using namespace my::app::messages;
+
 namespace {
 void log_identity(my::app::messages::IdentityMessage& identity) {
     Log.info_fast("msg: {}", identity.msg().getCharValAsString());
@@ -75,6 +78,37 @@ void eKYCEngine::stop() {
 }
 
 // Add verification method
+void eKYCEngine::verify_and_respond(
+    my::app::messages::IdentityMessage& identity) {
+    std::string msg_type = identity.msg().getCharValAsString();
+    bool is_verified = string_to_bool(identity.verified().getCharValAsString());
+
+    // Check if this is an "Identity Verification Request" with verified=false
+    if (msg_type == "Identity Verification Request" && !is_verified) {
+        std::string name = identity.name().getCharValAsString();
+        std::string id = identity.id().getCharValAsString();
+
+        Log.info_fast("Processing Identity Verification Request for: {} {}",
+                      name, id);
+
+        // Invoke verification method
+        bool verification_result = verify_identity(name, id);
+
+        if (verification_result) {
+            Log.info_fast("Verification successful for {} {}", name, id);
+            // TODO: Send back verified message with verified=true
+        } else {
+            Log.info_fast("Verification failed for {} {}", name, id);
+            // TODO: Send back message with verified=false
+        }
+    } else if (is_verified) {
+        Log.info_fast("Identity already verified: {}",
+                      identity.name().getCharValAsString());
+    } else {
+        Log.info_fast("Message type '{}' - no verification needed", msg_type);
+    }
+}
+
 bool eKYCEngine::verify_identity(const std::string& name,
                                  const std::string& id) {
     if (!db_) {
@@ -110,59 +144,24 @@ bool eKYCEngine::verify_identity(const std::string& name,
 
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData& fragmentData) {
-    using namespace my::app::messages;
-
-    ++receiving_packets_;
     try {
-        MessageHeader msgHeader;
+        my::app::messages::MessageHeader msgHeader;
         msgHeader.wrap(
             reinterpret_cast<char*>(const_cast<uint8_t*>(fragmentData.buffer)),
             0, 0, fragmentData.length);
         size_t offset = msgHeader.encodedLength();
 
-        if (msgHeader.templateId() == IdentityMessage::sbeTemplateId()) {
-            IdentityMessage identity;
+        if (msgHeader.templateId() ==
+            my::app::messages::IdentityMessage::sbeTemplateId()) {
+            my::app::messages::IdentityMessage identity;
             identity.wrapForDecode(reinterpret_cast<char*>(const_cast<uint8_t*>(
                                        fragmentData.buffer)),
                                    offset, msgHeader.blockLength(),
                                    msgHeader.version(), fragmentData.length);
 
             log_identity(identity);
-            Log.info_fast("Packet # {} received successfully!",
-                          receiving_packets_);
 
-            // Check if this is an "Identity Verification Request" with
-            // verified=false
-            std::string msg_type = identity.msg().getCharValAsString();
-            bool is_verified =
-                string_to_bool(identity.verified().getCharValAsString());
-
-            if (msg_type == "Identity Verification Request" && !is_verified) {
-                Log.info_fast(
-                    "Processing Identity Verification Request for: {} {}",
-                    identity.name().getCharValAsString(),
-                    identity.id().getCharValAsString());
-
-                // Invoke verification method
-                bool verification_result =
-                    verify_identity(identity.name().getCharValAsString(),
-                                    identity.id().getCharValAsString());
-
-                if (verification_result) {
-                    Log.info_fast("Verification successful for {} {}",
-                                  identity.name().getCharValAsString(),
-                                  identity.id().getCharValAsString());
-                    // TODO: Send back verified message with verified=true
-                } else {
-                    Log.info_fast("Verification failed for {} {}",
-                                  identity.name().getCharValAsString(),
-                                  identity.id().getCharValAsString());
-                    // TODO: Send back message with verified=false
-                }
-            } else if (is_verified) {
-                Log.info_fast("Identity already verified: {}",
-                              identity.name().getCharValAsString());
-            }
+            verify_and_respond(identity);
         } else {
             Log.error_fast("[Decoder] Unexpected template ID: {}",
                            msgHeader.templateId());

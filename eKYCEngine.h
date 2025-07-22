@@ -11,6 +11,15 @@
 
 extern Logger Log;
 
+// Forward declaration
+namespace my {
+namespace app {
+namespace messages {
+class IdentityMessage;
+}
+}  // namespace app
+}  // namespace my
+
 class eKYCEngine {
    public:
     static constexpr const char* AeronDir = "";
@@ -33,6 +42,7 @@ class eKYCEngine {
 
    private:
     void process_message(const aeron_wrapper::FragmentData& fragmentData);
+    void verify_and_respond(my::app::messages::IdentityMessage& identity);
     bool verify_identity(const std::string& name, const std::string& id);
 
     // Aeron components

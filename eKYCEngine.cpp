@@ -77,6 +77,148 @@ void eKYCEngine::stop() {
     Log.info_fast("eKYC engine stopped.");
 }
 
+// Check if user exists in database
+bool eKYCEngine::user_exists(const std::string& identity_number,
+                             const std::string& name) {
+    if (!db_) {
+        Log.error_fast("Database connection not available for user check");
+        return false;
+    }
+
+    try {
+        std::string query =
+            "SELECT identity_number, name FROM users WHERE identity_number = "
+            "'" +
+            identity_number + "' AND name = '" + name + "'";
+        auto result = db_->exec(query);
+        return !result.empty();
+    } catch (const pg_wrapper::DatabaseError& e) {
+        Log.error_fast("Database query error during user existence check: {}",
+                       e.what());
+        return false;
+    }
+}
+
+// Add user to system
+bool eKYCEngine::add_user_to_system(
+    my::app::messages::IdentityMessage& identity) {
+    if (!db_) {
+        Log.error_fast("Database connection not available for adding user");
+        return false;
+    }
+
+    try {
+        std::string type = identity.type().getCharValAsString();
+        std::string identity_number = identity.id().getCharValAsString();
+        std::string name = identity.name().getCharValAsString();
+        std::string date_of_issue = identity.dateOfIssue().getCharValAsString();
+        std::string date_of_expiry =
+            identity.dateOfExpiry().getCharValAsString();
+        std::string address = identity.address().getCharValAsString();
+
+        Log.info_fast("Adding user to system: name={}, id={}, type={}", name,
+                      identity_number, type);
+
+        // Check if user already exists using the reusable method
+        if (user_exists(identity_number, name)) {
+            Log.info_fast("User already exists in system: {} {} ({})", name,
+                          identity_number, type);
+            return false;  // User already exists, don't add duplicate
+        }
+
+        Log.info_fast(
+            "User not found in system, proceeding with addition: {} {}", name,
+            identity_number);
+
+        // Insert user into database
+        std::string insert_query =
+            "INSERT INTO users (type, identity_number, name, date_of_issue, "
+            "date_of_expiry, address) "
+            "VALUES ('" +
+            type + "', '" + identity_number + "', '" + name + "', '" +
+            date_of_issue + "', '" + date_of_expiry + "', '" + address + "')";
+
+        auto result = db_->exec(insert_query);
+
+        Log.info_fast("User successfully added to system: {} {} ({})", name,
+                      identity_number, type);
+        return true;
+
+    } catch (const pg_wrapper::DatabaseError& e) {
+        Log.error_fast("Database error while adding user: {}", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        Log.error_fast("Error adding user to system: {}", e.what());
+        return false;
+    }
+}
+
+// Send response message
+void eKYCEngine::send_response(
+    my::app::messages::IdentityMessage& original_identity,
+    bool verification_result) {
+    if (!publication_) {
+        Log.error_fast("Publication not available for sending response");
+        return;
+    }
+
+    try {
+        using namespace my::app::messages;
+        const size_t bufferCapacity =
+            MessageHeader::encodedLength() + IdentityMessage::sbeBlockLength();
+        std::vector<char> sbeBuffer(bufferCapacity, 0);
+        size_t offset = 0;
+
+        // Encode header
+        MessageHeader msgHeader;
+        msgHeader.wrap(sbeBuffer.data(), offset, 0, bufferCapacity);
+        msgHeader.blockLength(IdentityMessage::sbeBlockLength());
+        msgHeader.templateId(IdentityMessage::sbeTemplateId());
+        msgHeader.schemaId(IdentityMessage::sbeSchemaId());
+        msgHeader.version(IdentityMessage::sbeSchemaVersion());
+        offset += msgHeader.encodedLength();
+
+        // Encode response message
+        IdentityMessage response;
+        response.wrapForEncode(sbeBuffer.data(), offset, bufferCapacity);
+
+        // Copy original data but update verification status and message
+        response.msg().putCharVal("Identity Verification Response");
+        response.type().putCharVal(
+            original_identity.type().getCharValAsString());
+        response.id().putCharVal(original_identity.id().getCharValAsString());
+        response.name().putCharVal(
+            original_identity.name().getCharValAsString());
+        response.dateOfIssue().putCharVal(
+            original_identity.dateOfIssue().getCharValAsString());
+        response.dateOfExpiry().putCharVal(
+            original_identity.dateOfExpiry().getCharValAsString());
+        response.address().putCharVal(
+            original_identity.address().getCharValAsString());
+        response.verified().putCharVal(verification_result ? "true" : "false");
+
+        // Send the response
+        if (publication_->is_connected()) {
+            auto result = publication_->offer(
+                reinterpret_cast<const uint8_t*>(sbeBuffer.data()),
+                bufferCapacity);
+            if (result == aeron_wrapper::PublicationResult::SUCCESS) {
+                Log.info_fast("Response sent successfully: {} for {} {}",
+                              verification_result ? "VERIFIED" : "NOT VERIFIED",
+                              original_identity.name().getCharValAsString(),
+                              original_identity.id().getCharValAsString());
+            } else {
+                Log.error_fast("Failed to send response: {}",
+                               static_cast<int>(result));
+            }
+        } else {
+            Log.error_fast("Publication not connected, cannot send response");
+        }
+    } catch (const std::exception& e) {
+        Log.error_fast("Error sending response: {}", e.what());
+    }
+}
+
 // Add verification method
 void eKYCEngine::verify_and_respond(
     my::app::messages::IdentityMessage& identity) {
@@ -96,48 +238,55 @@ void eKYCEngine::verify_and_respond(
 
         if (verification_result) {
             Log.info_fast("Verification successful for {} {}", name, id);
-            // TODO: Send back verified message with verified=true
+            // Send back verified message with verified=true
+            send_response(identity, true);
         } else {
             Log.info_fast("Verification failed for {} {}", name, id);
-            // TODO: Send back message with verified=false
+            // Send back message with verified=false
+            send_response(identity, false);
+        }
+    }
+    // Check if this is an "Add User in System" request with verified=false
+    else if (msg_type == "Add User in System" && !is_verified) {
+        std::string name = identity.name().getCharValAsString();
+        std::string id = identity.id().getCharValAsString();
+
+        Log.info_fast("Processing Add User in System request for: {} {}", name,
+                      id);
+
+        // Add user to database
+        bool add_result = add_user_to_system(identity);
+
+        if (add_result) {
+            Log.info_fast("User addition successful for {} {}", name, id);
+            // Send back response with verified=true (user added successfully)
+            send_response(identity, true);
+        } else {
+            Log.info_fast("User addition failed for {} {}", name, id);
+            // Send back response with verified=false (user addition failed)
+            send_response(identity, false);
         }
     } else if (is_verified) {
         Log.info_fast("Identity already verified: {}",
                       identity.name().getCharValAsString());
     } else {
-        Log.info_fast("Message type '{}' - no verification needed", msg_type);
+        Log.info_fast("Message type '{}' - no action needed", msg_type);
     }
 }
 
 bool eKYCEngine::verify_identity(const std::string& name,
                                  const std::string& id) {
-    if (!db_) {
-        Log.error_fast("Database connection not available");
-        return false;
-    }
+    Log.info_fast("Verifying identity: name={}, id={}", name, id);
 
-    try {
-        Log.info_fast("Verifying identity: name={}, id={}", name, id);
+    // Use the reusable user_exists method
+    bool exists = user_exists(id, name);
 
-        // Use exec instead of exec_params to avoid template linking issues
-        std::string query =
-            "SELECT identity_number, name FROM users WHERE identity_number = "
-            "'" +
-            id + "' AND name = '" + name + "'";
-        auto result = db_->exec(query);
-
-        if (!result.empty()) {
-            Log.info_fast("Identity verified: {} {} found in database", id,
-                          name);
-            return true;
-        } else {
-            Log.info_fast("Identity NOT verified: {} {} not found in database",
-                          id, name);
-            return false;
-        }
-    } catch (const pg_wrapper::DatabaseError& e) {
-        Log.error_fast("Database query error during verification: {}",
-                       e.what());
+    if (exists) {
+        Log.info_fast("Identity verified: {} {} found in database", id, name);
+        return true;
+    } else {
+        Log.info_fast("Identity NOT verified: {} {} not found in database", id,
+                      name);
         return false;
     }
 }

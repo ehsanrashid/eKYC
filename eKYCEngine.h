@@ -29,8 +29,8 @@ class eKYCEngine {
     static constexpr int SubscriptionStreamId = 1001;
 
     static constexpr const char* PublicationChannel =
-        "aeron:udp?endpoint=anas.eagri.com:40124";
-    static constexpr int PublicationStreamId = 100;
+        "aeron:udp?endpoint=anas.eagri.com:10001";
+    static constexpr int PublicationStreamId = 1001;
 
     eKYCEngine();
 
@@ -43,7 +43,12 @@ class eKYCEngine {
    private:
     void process_message(const aeron_wrapper::FragmentData& fragmentData);
     void verify_and_respond(my::app::messages::IdentityMessage& identity);
+    void send_response(my::app::messages::IdentityMessage& original_identity,
+                       bool verification_result);
     bool verify_identity(const std::string& name, const std::string& id);
+    bool user_exists(const std::string& identity_number,
+                     const std::string& name);
+    bool add_user_to_system(my::app::messages::IdentityMessage& identity);
 
     // Aeron components
     std::unique_ptr<aeron_wrapper::Aeron> aeron_;

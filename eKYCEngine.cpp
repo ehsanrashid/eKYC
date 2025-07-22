@@ -6,24 +6,10 @@
 #include <chrono>
 #include <exception>
 #include <iostream>
-#include "IdentityMessage.h"
-#include "MessageHeader.h"
 #include <vector>
 #include <csignal>
 #include <atomic>
 
-// static std::atomic<bool> running_sender{true};
-// static std::atomic<bool> running_receiver{true};
-
-// void signalHandlerSender(int signal) {
-//     Log.info("Received signal " + std::to_string(signal) + ", shutting down sender...");
-//     running_sender = false;
-// }
-
-// void signalHandlerReceiver(int signal) {
-//     Log.info("Received signal " + std::to_string(signal) + ", shutting down receiver...");
-//     running_receiver = false;
-// }
 
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
@@ -62,12 +48,14 @@ void eKYCEngine::stop() {
 }
 
 void eKYCEngine::process_message(const aeron_wrapper::FragmentData& fragmentData) {
+    static int i = 0;
     using namespace my::app::messages;
     Log.info("Starting Aeron Receiver on " + std::string(SubscriptionChannel));
     try {
             MessageHeader msgHeader;
             msgHeader.wrap(reinterpret_cast<char*>(const_cast<uint8_t*>(fragmentData.buffer)), 0, 0, fragmentData.length);
             size_t offset = msgHeader.encodedLength();
+            
             if (msgHeader.templateId() == IdentityMessage::sbeTemplateId()) {
                 IdentityMessage identity;
                 identity.wrapForDecode(reinterpret_cast<char*>(const_cast<uint8_t*>(fragmentData.buffer)),
@@ -83,6 +71,7 @@ void eKYCEngine::process_message(const aeron_wrapper::FragmentData& fragmentData
                 Log.info("dateOfExpiry: " + identity.dateOfExpiry().getCharValAsString());
                 Log.info("address: " + identity.address().getCharValAsString());
                 Log.info("verified: " + identity.verified().getCharValAsString());
+                Log.info_fast("Packet # {} received successfully!",i);
             } else {
                 std::cerr << "[Decoder] Unexpected template ID: " << msgHeader.templateId() << std::endl;
             }

@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "include/aeron_wrapper.h"
+#include "include/pg_wrapper.h"
 #include "logger.h"
 
 extern Logger Log;
@@ -32,6 +33,7 @@ class eKYCEngine {
 
    private:
     void process_message(const aeron_wrapper::FragmentData& fragmentData);
+    bool verify_identity(const std::string& name, const std::string& id);
 
     // Aeron components
     std::unique_ptr<aeron_wrapper::Aeron> aeron_;
@@ -41,4 +43,6 @@ class eKYCEngine {
         backgroundPoller_;
     long int receiving_packets_ = 0;
     std::atomic<bool> running_;
+
+    std::unique_ptr<pg_wrapper::Database> db_;
 };

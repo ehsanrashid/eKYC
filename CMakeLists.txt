@@ -46,10 +46,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
-    ${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
     /usr/local/lib/libloggerlib.a
     aeron_client
     ${PQXX_LIBRARIES}
+    ${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
     aeron_driver
     pthread
 )

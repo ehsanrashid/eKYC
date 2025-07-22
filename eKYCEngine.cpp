@@ -10,6 +10,8 @@
 #include "Char64str.h"
 #include "IdentityMessage.h"
 #include "MessageHeader.h"
+#include "helper.h"
+#include "include/pg_wrapper.h"
 
 namespace {
 void log_identity(my::app::messages::IdentityMessage& identity) {
@@ -28,6 +30,10 @@ void log_identity(my::app::messages::IdentityMessage& identity) {
 
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
+        db_ = std::make_unique<pg_wrapper::Database>(
+            "localhost", "5432", "ekycdb", "huzaifa", "3214");
+
+        Log.info_fast("Connected to PostGreSQL EKYCDB");
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info_fast("Connected to Aeron Media Driver...");
         subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
@@ -40,7 +46,13 @@ eKYCEngine::eKYCEngine() : running_(false) {
     }
 }
 
-eKYCEngine::~eKYCEngine() { stop(); }
+eKYCEngine::~eKYCEngine() {
+    stop();
+    if (db_) {
+        db_->close();
+        Log.info_fast("PostGre EKYCDB connection closed!");
+    }
+}
 
 void eKYCEngine::start() {
     if (!running_) return;
@@ -60,6 +72,40 @@ void eKYCEngine::stop() {
 
     running_ = false;
     Log.info_fast("eKYC engine stopped.");
+}
+
+// Add verification method
+bool eKYCEngine::verify_identity(const std::string& name,
+                                 const std::string& id) {
+    if (!db_) {
+        Log.error_fast("Database connection not available");
+        return false;
+    }
+
+    try {
+        Log.info_fast("Verifying identity: name={}, id={}", name, id);
+
+        // Use exec instead of exec_params to avoid template linking issues
+        std::string query =
+            "SELECT identity_number, name FROM users WHERE identity_number = "
+            "'" +
+            id + "' AND name = '" + name + "'";
+        auto result = db_->exec(query);
+
+        if (!result.empty()) {
+            Log.info_fast("Identity verified: {} {} found in database", id,
+                          name);
+            return true;
+        } else {
+            Log.info_fast("Identity NOT verified: {} {} not found in database",
+                          id, name);
+            return false;
+        }
+    } catch (const pg_wrapper::DatabaseError& e) {
+        Log.error_fast("Database query error during verification: {}",
+                       e.what());
+        return false;
+    }
 }
 
 void eKYCEngine::process_message(
@@ -82,10 +128,41 @@ void eKYCEngine::process_message(
                                    msgHeader.version(), fragmentData.length);
 
             log_identity(identity);
-
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
 
+            // Check if this is an "Identity Verification Request" with
+            // verified=false
+            std::string msg_type = identity.msg().getCharValAsString();
+            bool is_verified =
+                string_to_bool(identity.verified().getCharValAsString());
+
+            if (msg_type == "Identity Verification Request" && !is_verified) {
+                Log.info_fast(
+                    "Processing Identity Verification Request for: {} {}",
+                    identity.name().getCharValAsString(),
+                    identity.id().getCharValAsString());
+
+                // Invoke verification method
+                bool verification_result =
+                    verify_identity(identity.name().getCharValAsString(),
+                                    identity.id().getCharValAsString());
+
+                if (verification_result) {
+                    Log.info_fast("Verification successful for {} {}",
+                                  identity.name().getCharValAsString(),
+                                  identity.id().getCharValAsString());
+                    // TODO: Send back verified message with verified=true
+                } else {
+                    Log.info_fast("Verification failed for {} {}",
+                                  identity.name().getCharValAsString(),
+                                  identity.id().getCharValAsString());
+                    // TODO: Send back message with verified=false
+                }
+            } else if (is_verified) {
+                Log.info_fast("Identity already verified: {}",
+                              identity.name().getCharValAsString());
+            }
         } else {
             Log.error_fast("[Decoder] Unexpected template ID: {}",
                            msgHeader.templateId());

@@ -11,6 +11,21 @@
 #include "IdentityMessage.h"
 #include "MessageHeader.h"
 
+namespace {
+void log_identity(my::app::messages::IdentityMessage& identity) {
+    Log.info_fast("msg: {}", identity.msg().getCharValAsString());
+    Log.info_fast("type: {}", identity.type().getCharValAsString());
+    Log.info_fast("id: {}", identity.id().getCharValAsString());
+    Log.info_fast("name: {}", identity.name().getCharValAsString());
+    Log.info_fast("dateOfIssue: {}",
+                  identity.dateOfIssue().getCharValAsString());
+    Log.info_fast("dateOfExpiry: {}",
+                  identity.dateOfExpiry().getCharValAsString());
+    Log.info_fast("address: {}", identity.address().getCharValAsString());
+    Log.info_fast("verified: {}", identity.verified().getCharValAsString());
+}
+}  // namespace
+
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
@@ -65,18 +80,8 @@ void eKYCEngine::process_message(
                                        fragmentData.buffer)),
                                    offset, msgHeader.blockLength(),
                                    msgHeader.version(), fragmentData.length);
-            Log.info_fast("msg: {}", identity.msg().getCharValAsString());
-            Log.info_fast("type: {}", identity.type().getCharValAsString());
-            Log.info_fast("id: {}", identity.id().getCharValAsString());
-            Log.info_fast("name: {}", identity.name().getCharValAsString());
-            Log.info_fast("dateOfIssue: {}",
-                          identity.dateOfIssue().getCharValAsString());
-            Log.info_fast("dateOfExpiry: {}",
-                          identity.dateOfExpiry().getCharValAsString());
-            Log.info_fast("address: {}",
-                          identity.address().getCharValAsString());
-            Log.info_fast("verified: {}",
-                          identity.verified().getCharValAsString());
+
+            log_identity(identity);
 
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
@@ -91,29 +96,29 @@ void eKYCEngine::process_message(
     }
 }
 
-// void eKYCEngine::run_sender()
-// {
-//     std::signal(SIGINT, signalHandlerSender);
-//     std::signal(SIGTERM, signalHandlerSender);
+// void eKYCEngine::run_sender() {
 //     Log.info("Starting Aeron Sender on " + std::string(PublicationChannel));
 //     try {
 //         // std::string aeronDir = "/dev/shm/aeron-huzaifa";
 //         std::string channel =
-//         "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true"; std::int32_t
-//         streamId = 1001; aeron_wrapper::Aeron aeronClient; // Use default
-//         directory auto publication = aeronClient.create_publication(channel,
-//         streamId);
+//             "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true";
+//         std::int32_t streamId = 1001;
+//         aeron_wrapper::Aeron aeronClient;  // Use default
+//         directory auto publication =
+//             aeronClient.create_publication(channel, streamId);
 //         if (!publication) {
 //             std::cerr << "Failed to create publication" << std::endl;
 //             return;
 //         }
 //         Log.info("Publication created successfully.");
 //         using namespace my::app::messages;
-//         const size_t bufferCapacity = MessageHeader::encodedLength() +
-//         IdentityMessage::sbeBlockLength(); std::vector<char>
-//         sbeBuffer(bufferCapacity, 0); size_t offset = 0; MessageHeader
-//         msgHeader; msgHeader.wrap(sbeBuffer.data(), offset, 0,
-//         bufferCapacity);
+//         const size_t bufferCapacity =
+//             MessageHeader::encodedLength() +
+//             IdentityMessage::sbeBlockLength();
+//         std::vector<char> sbeBuffer(bufferCapacity, 0);
+//         size_t offset = 0;
+//         MessageHeader msgHeader;
+//         msgHeader.wrap(sbeBuffer.data(), offset, 0, bufferCapacity);
 //         msgHeader.blockLength(IdentityMessage::sbeBlockLength());
 //         msgHeader.templateId(IdentityMessage::sbeTemplateId());
 //         msgHeader.schemaId(IdentityMessage::sbeSchemaId());
@@ -133,9 +138,10 @@ void eKYCEngine::process_message(
 //             if (!publication->is_connected()) {
 //                 Log.info("No subscribers connected. Skipping send...");
 //             } else {
-//                 auto result = publication->offer(reinterpret_cast<const
-//                 uint8_t*>(sbeBuffer.data()), bufferCapacity); if (result !=
-//                 aeron_wrapper::PublicationResult::SUCCESS) {
+//                 auto result = publication->offer(
+//                     reinterpret_cast<const uint8_t*>(sbeBuffer.data()),
+//                     bufferCapacity);
+//                 if (result != aeron_wrapper::PublicationResult::SUCCESS) {
 //                     Log.info("Offer failed (backpressure or not connected),
 //                     retrying...");
 //                 } else {

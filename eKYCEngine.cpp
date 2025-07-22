@@ -65,20 +65,24 @@ void eKYCEngine::process_message(
                                        fragmentData.buffer)),
                                    offset, msgHeader.blockLength(),
                                    msgHeader.version(), fragmentData.length);
-            Log.info_fast("msg: {}",identity.msg().getCharValAsString());
-            Log.info_fast("type: {}",  identity.type().getCharValAsString());
-            Log.info_fast("id: {}",  identity.id().getCharValAsString());
-            Log.info_fast("name: {}",  identity.name().getCharValAsString());
-            Log.info_fast("dateOfIssue: {}",  identity.dateOfIssue().getCharValAsString());
-            Log.info_fast("dateOfExpiry: {}",  identity.dateOfExpiry().getCharValAsString());
-            Log.info_fast("address: {}",  identity.address().getCharValAsString());
-            Log.info_fast("verified: {}",  identity.verified().getCharValAsString());
+            Log.info_fast("msg: {}", identity.msg().getCharValAsString());
+            Log.info_fast("type: {}", identity.type().getCharValAsString());
+            Log.info_fast("id: {}", identity.id().getCharValAsString());
+            Log.info_fast("name: {}", identity.name().getCharValAsString());
+            Log.info_fast("dateOfIssue: {}",
+                          identity.dateOfIssue().getCharValAsString());
+            Log.info_fast("dateOfExpiry: {}",
+                          identity.dateOfExpiry().getCharValAsString());
+            Log.info_fast("address: {}",
+                          identity.address().getCharValAsString());
+            Log.info_fast("verified: {}",
+                          identity.verified().getCharValAsString());
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
-            
-            
+
         } else {
-            Log.error_fast("[Decoder] Unexpected template ID: {}", msgHeader.templateId());
+            Log.error_fast("[Decoder] Unexpected template ID: {}",
+                           msgHeader.templateId());
         }
 
     } catch (const std::exception& e) {
@@ -94,10 +98,10 @@ void eKYCEngine::process_message(
 //     try {
 //         // std::string aeronDir = "/dev/shm/aeron-huzaifa";
 //         std::string channel =
-//         "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true"; std::int32_t
-//         streamId = 1001; aeron_wrapper::Aeron aeronClient; // Use default
-//         directory auto publication = aeronClient.create_publication(channel,
-//         streamId);
+//         "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true";
+//         std::int32_t streamId = 1001; aeron_wrapper::Aeron aeronClient;
+//         Use default directory
+//         auto publication = aeronClient.create_publication(channel, streamId);
 //         if (!publication) {
 //             std::cerr << "Failed to create publication" << std::endl;
 //             return;

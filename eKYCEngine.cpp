@@ -41,7 +41,6 @@ eKYCEngine::~eKYCEngine() { stop(); }
 void eKYCEngine::start() {
     if (!running_) return;
     Log.info("Starting eKYC engine...");
-    Log.debug_fast(0, "[LoanEngine] Order accepted: account {}, qty {}", 1, 2);
     // Start background msg processing
     backgroundPoller_ = subscription_->start_background_polling(
         [this](const aeron_wrapper::FragmentData& fragmentData) {

@@ -21,7 +21,7 @@ eKYCEngine::eKYCEngine() : running_(false) {
                                                   PublicationStreamId);
         running_ = true;
     } catch (const std::exception& e) {
-        Log.info_fast(std::string("Error: ") + e.what());
+        Log.info_fast("Error: {}", e.what());
     }
 }
 
@@ -77,6 +77,7 @@ void eKYCEngine::process_message(
                           identity.address().getCharValAsString());
             Log.info_fast("verified: {}",
                           identity.verified().getCharValAsString());
+
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
 
@@ -98,10 +99,10 @@ void eKYCEngine::process_message(
 //     try {
 //         // std::string aeronDir = "/dev/shm/aeron-huzaifa";
 //         std::string channel =
-//         "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true";
-//         std::int32_t streamId = 1001; aeron_wrapper::Aeron aeronClient;
-//         Use default directory
-//         auto publication = aeronClient.create_publication(channel, streamId);
+//         "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true"; std::int32_t
+//         streamId = 1001; aeron_wrapper::Aeron aeronClient; // Use default
+//         directory auto publication = aeronClient.create_publication(channel,
+//         streamId);
 //         if (!publication) {
 //             std::cerr << "Failed to create publication" << std::endl;
 //             return;

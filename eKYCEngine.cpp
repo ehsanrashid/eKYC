@@ -75,7 +75,7 @@ void eKYCEngine::process_message(
             Log.info_fast("verified: {}",  identity.verified().getCharValAsString());
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
-
+            
             
         } else {
             Log.error_fast("[Decoder] Unexpected template ID: {}", msgHeader.templateId());

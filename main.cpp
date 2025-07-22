@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
         eKYC->stop();
         return 0;
     } catch (const std::exception& e) {
-        Log.error(std::string("Error: ") + e.what());
+        Log.error_fast("Error: {}", e.what());
         return 1;
     }
 }

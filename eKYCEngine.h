@@ -30,8 +30,6 @@ class eKYCEngine {
 
     void stop();
 
-    static void run_sender();
-
    private:
     void process_message(const aeron_wrapper::FragmentData& fragmentData);
 

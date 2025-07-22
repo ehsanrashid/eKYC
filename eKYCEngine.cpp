@@ -51,6 +51,8 @@ void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData& fragmentData) {
     using namespace my::app::messages;
     Log.info("Starting Aeron Receiver on " + std::string(SubscriptionChannel));
+
+    ++receiving_packets_;
     try {
         MessageHeader msgHeader;
         msgHeader.wrap(
@@ -76,8 +78,6 @@ void eKYCEngine::process_message(
             Log.info("verified: " + identity.verified().getCharValAsString());
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
-            receiving_packets_++;
-
         } else {
             Log.error("[Decoder] Unexpected template ID: " +
                       msgHeader.templateId());

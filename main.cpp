@@ -11,10 +11,10 @@
 #include "eKYCEngine.h"
 #include "logger.h"
 #include "loggerwrapper.h"
+
 Logger Log("logs/Gateway_SBE.log", 10 * 1024 * 1024);
 
-int main(int argc, char** argv) 
-{
+int main(int argc, char** argv) {
     Log.set_log_level(LogLevel::DEBUG);
 
     std::atomic<bool> keepRunning{true};
@@ -28,7 +28,6 @@ int main(int argc, char** argv)
         auto eKYC = std::make_unique<eKYCEngine>();
 
         eKYC->start();
-        // eKYC->run_sender();
 
         while (keepRunning) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -36,7 +35,7 @@ int main(int argc, char** argv)
 
         if (inputThread.joinable()) inputThread.join();
 
-        eKYC->stop();        
+        eKYC->stop();
         return 0;
     } catch (const std::exception& e) {
         Log.error(std::string("Error: ") + e.what());

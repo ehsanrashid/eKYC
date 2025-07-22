@@ -65,20 +65,25 @@ void eKYCEngine::process_message(
                                        fragmentData.buffer)),
                                    offset, msgHeader.blockLength(),
                                    msgHeader.version(), fragmentData.length);
-            Log.info_fast("msg: {}",identity.msg().getCharValAsString());
-            Log.info_fast("type: {}",  identity.type().getCharValAsString());
-            Log.info_fast("id: {}",  identity.id().getCharValAsString());
-            Log.info_fast("name: {}",  identity.name().getCharValAsString());
-            Log.info_fast("dateOfIssue: {}",  identity.dateOfIssue().getCharValAsString());
-            Log.info_fast("dateOfExpiry: {}",  identity.dateOfExpiry().getCharValAsString());
-            Log.info_fast("address: {}",  identity.address().getCharValAsString());
-            Log.info_fast("verified: {}",  identity.verified().getCharValAsString());
+            Log.info_fast("msg: {}", identity.msg().getCharValAsString());
+            Log.info_fast("type: {}", identity.type().getCharValAsString());
+            Log.info_fast("id: {}", identity.id().getCharValAsString());
+            Log.info_fast("name: {}", identity.name().getCharValAsString());
+            Log.info_fast("dateOfIssue: {}",
+                          identity.dateOfIssue().getCharValAsString());
+            Log.info_fast("dateOfExpiry: {}",
+                          identity.dateOfExpiry().getCharValAsString());
+            Log.info_fast("address: {}",
+                          identity.address().getCharValAsString());
+            Log.info_fast("verified: {}",
+                          identity.verified().getCharValAsString());
+
             Log.info_fast("Packet # {} received successfully!",
                           receiving_packets_);
-            
-            
+
         } else {
-            Log.error_fast("[Decoder] Unexpected template ID: {}", msgHeader.templateId());
+            Log.error_fast("[Decoder] Unexpected template ID: {}",
+                           msgHeader.templateId());
         }
 
     } catch (const std::exception& e) {

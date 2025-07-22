@@ -50,7 +50,6 @@ void eKYCEngine::stop() {
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData& fragmentData) {
     using namespace my::app::messages;
-    Log.info("Starting Aeron Receiver on " + std::string(SubscriptionChannel));
 
     ++receiving_packets_;
     try {

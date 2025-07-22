@@ -48,7 +48,6 @@ void eKYCEngine::stop() {
 }
 
 void eKYCEngine::process_message(const aeron_wrapper::FragmentData& fragmentData) {
-    static int i = 0;
     using namespace my::app::messages;
     Log.info("Starting Aeron Receiver on " + std::string(SubscriptionChannel));
     try {
@@ -71,7 +70,11 @@ void eKYCEngine::process_message(const aeron_wrapper::FragmentData& fragmentData
                 Log.info("dateOfExpiry: " + identity.dateOfExpiry().getCharValAsString());
                 Log.info("address: " + identity.address().getCharValAsString());
                 Log.info("verified: " + identity.verified().getCharValAsString());
-                Log.info_fast("Packet # {} received successfully!",i);
+                Log.info_fast("Packet # {} received successfully!",receiving_packets_);
+                receiving_packets_++;
+                
+                
+                
             } else {
                 std::cerr << "[Decoder] Unexpected template ID: " << msgHeader.templateId() << std::endl;
             }

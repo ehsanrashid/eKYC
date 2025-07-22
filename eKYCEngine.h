@@ -42,6 +42,6 @@ class eKYCEngine
     std::unique_ptr<aeron_wrapper::Publication> publication_;
     std::unique_ptr<aeron_wrapper::Subscription::BackgroundPoller>
         backgroundPoller_;
-
+    long int receiving_packets_ = 0;
     std::atomic<bool> running_;
 };

@@ -10,9 +10,8 @@
 
 extern Logger Log;
 
-class eKYCEngine 
-{
-    public:
+class eKYCEngine {
+   public:
     static constexpr const char* AeronDir = "";
 
     static constexpr const char* SubscriptionChannel =

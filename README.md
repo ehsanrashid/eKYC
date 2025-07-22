@@ -227,7 +227,3 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
   - Verify files exist: `/usr/local/include/logger.h` and `/usr/local/lib/libloggerlib.a`
 
 ---
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

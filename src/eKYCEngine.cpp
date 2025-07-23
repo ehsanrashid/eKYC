@@ -7,11 +7,10 @@
 #include <iostream>
 #include <vector>
 
-#include "helper.h"
-#include "pg_wrapper.h"
 #include "Char64str.h"
 #include "IdentityMessage.h"
 #include "MessageHeader.h"
+#include "helper.h"
 
 // Use the SBE namespace
 using namespace messages;
@@ -97,8 +96,7 @@ bool eKYCEngine::user_exists(const std::string& identity_number,
 }
 
 // Add user to system
-bool eKYCEngine::add_user_to_system(
-    messages::IdentityMessage& identity) {
+bool eKYCEngine::add_user_to_system(messages::IdentityMessage& identity) {
     if (!db_) {
         Log.error_fast("Database connection not available for adding user");
         return false;
@@ -151,9 +149,8 @@ bool eKYCEngine::add_user_to_system(
 }
 
 // Send response message
-void eKYCEngine::send_response(
-    messages::IdentityMessage& original_identity,
-    bool verification_result) {
+void eKYCEngine::send_response(messages::IdentityMessage& original_identity,
+                               bool verification_result) {
     if (!publication_) {
         Log.error_fast("Publication not available for sending response");
         return;
@@ -217,8 +214,7 @@ void eKYCEngine::send_response(
 }
 
 // Add verification method
-void eKYCEngine::verify_and_respond(
-    messages::IdentityMessage& identity) {
+void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
     std::string msg_type = identity.msg().getCharValAsString();
     bool is_verified = string_to_bool(identity.verified().getCharValAsString());
 

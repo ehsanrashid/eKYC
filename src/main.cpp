@@ -10,8 +10,9 @@
 // Local Headers include
 #include "../include/eKYCEngine.h"
 #include "logger.h"
+#include "loggerwrapper.h"
 
-Logger Log("logs/Gateway_JSON.log", 10 * 1024 * 1024);
+Logger Log("logs/Gateway_SBE.log", 10 * 1024 * 1024);
 
 int main(int argc, char** argv) {
     Log.set_log_level(LogLevel::DEBUG);
@@ -35,10 +36,9 @@ int main(int argc, char** argv) {
         if (inputThread.joinable()) inputThread.join();
 
         eKYC->stop();
-
         return 0;
     } catch (const std::exception& e) {
-        Log.error(std::string("Error: ") + e.what());
+        Log.error_fast("Error: {}", e.what());
         return 1;
     }
 }

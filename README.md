@@ -170,25 +170,20 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 ```
 .
 ├── CMakeLists.txt
-├── eKYCEngine.cpp          # Main engine implementation
-├── eKYCEngine.h            # Engine class definition
-├── main.cpp                # Application entry point
-├── helper.h                # Helper functions (string_to_bool)
-├── login-schema.xml        # SBE schema definition
+├── login-schema.xml       # SBE schema definition
 ├── sbe-all-1.36.0-SNAPSHOT.jar  # SBE code generator
-├── include/
-│   ├── aeron_wrapper.h     # Aeron messaging wrapper
-│   └── pg_wrapper.h        # PostgreSQL wrapper
-├── lib/
-│   ├── libaeronWrapper.a   # Aeron wrapper library
-│   └── libpgWrapper.a      # PostgreSQL wrapper library
-├── output/
-│   └── my_app_messages/    # Generated SBE message classes
-│       ├── IdentityMessage.h
-│       ├── MessageHeader.h
-│       └── Char64str.h
+├── include
+|   ├── eKYCEngine.h       # Engine class definition
+|   ├── helper.h           # Helper functions
+|    # Generated SBE message classes
+|   ├── IdentityMessage.h
+|   ├── MessageHeader.h
+|   └── Char64str.h
+├── src
+|   ├── eKYCEngine.cpp     # Engine class implementation
+|   ├── main.cpp           # Application entry point
 └── build/
-    └── logs/               # Log output directory
+    └── logs/              # Log output directory
 ```
 
 ---

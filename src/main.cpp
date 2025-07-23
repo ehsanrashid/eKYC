@@ -8,7 +8,7 @@
 #include <thread>
 
 // Local Headers include
-#include "../include/eKYCEngine.h"
+#include "eKYCEngine.h"
 #include "logger.h"
 #include "loggerwrapper.h"
 

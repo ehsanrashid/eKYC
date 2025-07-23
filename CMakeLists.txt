@@ -28,9 +28,6 @@ find_package(PostgreSQL REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED libpqxx)
 
-include_directories(${PQXX_INCLUDE_DIRS})
-link_directories(${PQXX_LIBRARY_DIRS})
-
 # Collect source files
 file(GLOB SOURCE_FILES "*.cpp" )
 

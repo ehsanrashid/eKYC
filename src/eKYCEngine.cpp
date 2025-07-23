@@ -40,7 +40,7 @@ eKYCEngine::eKYCEngine() : running_(false) {
 
         db_ = std::make_unique<pg_wrapper::Database>(
             "localhost", "5432", "ekycdb", "huzaifa", "3214");
-        Log.info_fast("Connected to PostGreSQL EKYCDB");
+        Log.info_fast("Connected to PostGreSQL");
 
         running_ = true;
     } catch (const std::exception& e) {
@@ -67,7 +67,7 @@ void eKYCEngine::stop() {
     }
     if (db_) {
         db_->close();
-        Log.info_fast("PostGre connection closed!");
+        Log.info_fast("PostGreSQL connection closed!");
     }
     running_ = false;
     Log.info_fast("eKYC engine stopped.");
@@ -313,62 +313,3 @@ void eKYCEngine::process_message(
         Log.error_fast("Error: {}", e.what());
     }
 }
-
-// void eKYCEngine::run_sender() {
-//     Log.info("Starting Aeron Sender on " + std::string(PublicationChannel));
-//     try {
-//         // std::string aeronDir = "/dev/shm/aeron-huzaifa";
-//         std::string channel =
-//             "aeron:udp?endpoint=anas.eagri.com:10001|reliable=true";
-//         std::int32_t streamId = 1001;
-//         aeron_wrapper::Aeron aeronClient;  // Use default
-//         directory auto publication =
-//             aeronClient.create_publication(channel, streamId);
-//         if (!publication) {
-//             std::cerr << "Failed to create publication" << std::endl;
-//             return;
-//         }
-//         Log.info("Publication created successfully.");
-//         using namespace messages;
-//         const size_t bufferCapacity =
-//             MessageHeader::encodedLength() +
-//             IdentityMessage::sbeBlockLength();
-//         std::vector<char> sbeBuffer(bufferCapacity, 0);
-//         size_t offset = 0;
-//         MessageHeader msgHeader;
-//         msgHeader.wrap(sbeBuffer.data(), offset, 0, bufferCapacity);
-//         msgHeader.blockLength(IdentityMessage::sbeBlockLength());
-//         msgHeader.templateId(IdentityMessage::sbeTemplateId());
-//         msgHeader.schemaId(IdentityMessage::sbeSchemaId());
-//         msgHeader.version(IdentityMessage::sbeSchemaVersion());
-//         offset += msgHeader.encodedLength();
-//         IdentityMessage identity;
-//         identity.wrapForEncode(sbeBuffer.data(), offset, bufferCapacity);
-//         identity.msg().putCharVal("Identity denied presence");
-//         identity.type().putCharVal("passport");
-//         identity.id().putCharVal("1231321314124");
-//         identity.name().putCharVal("Huzaifa Ahmed");
-//         identity.dateOfIssue().putCharVal("2021-01-01");
-//         identity.dateOfExpiry().putCharVal("2025-01-01");
-//         identity.address().putCharVal("Hello");
-//         identity.verified().putCharVal("false");
-//         while (running_sender) {
-//             if (!publication->is_connected()) {
-//                 Log.info("No subscribers connected. Skipping send...");
-//             } else {
-//                 auto result = publication->offer(
-//                     reinterpret_cast<const uint8_t*>(sbeBuffer.data()),
-//                     bufferCapacity);
-//                 if (result != aeron_wrapper::PublicationResult::SUCCESS) {
-//                     Log.info("Offer failed (backpressure or not connected),
-//                     retrying...");
-//                 } else {
-//                     Log.info("SBE message sent successfully.");
-//                 }
-//             }
-//             std::this_thread::sleep_for(std::chrono::seconds(1));
-//         }
-//     } catch (const std::exception& e) {
-//         std::cerr << "Exception: " << e.what() << std::endl;
-//     }
-// }

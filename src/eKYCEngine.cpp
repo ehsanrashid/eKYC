@@ -31,16 +31,17 @@ void log_identity(messages::IdentityMessage& identity) {
 
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
-        db_ = std::make_unique<pg_wrapper::Database>(
-            "localhost", "5432", "ekycdb", "huzaifa", "3214");
-
-        Log.info_fast("Connected to PostGreSQL EKYCDB");
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info_fast("Connected to Aeron Media Driver...");
         subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
         publication_ = aeron_->create_publication(PublicationChannel,  //
                                                   PublicationStreamId);
+
+        db_ = std::make_unique<pg_wrapper::Database>(
+            "localhost", "5432", "ekycdb", "huzaifa", "3214");
+        Log.info_fast("Connected to PostGreSQL EKYCDB");
+
         running_ = true;
     } catch (const std::exception& e) {
         Log.info_fast("Error: {}", e.what());

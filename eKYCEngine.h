@@ -5,7 +5,7 @@
 #include <string>
 #include <thread>
 
-#include "include/aeron_wrapper.h"
+#include "aeron_wrapper.h"
 #include "pg_wrapper.h"
 #include "logger.h"
 

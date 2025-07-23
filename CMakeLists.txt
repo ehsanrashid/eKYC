@@ -46,8 +46,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
-    #${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
+    /usr/local/lib/libaeronWrapper.a
     /usr/local/lib/libloggerlib.a
     /usr/local/lib/libpgWrapper.a
     aeron_client

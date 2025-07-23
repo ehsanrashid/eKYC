@@ -42,14 +42,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${aeron_SOURCE_DIR}/aeron-client/src/main/cpp
     ${aeron_SOURCE_DIR}/aeron-driver/src/main/c
     /usr/local/include
-    ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/output/my_app_messages
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
-    ${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
+    #${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
     /usr/local/lib/libloggerlib.a
+    /usr/local/lib/libpgWrapper.a
     aeron_client
     aeron_driver
     ${PQXX_LIBRARIES}

@@ -6,7 +6,7 @@
 #include <thread>
 
 #include "include/aeron_wrapper.h"
-#include "include/pg_wrapper.h"
+#include "pg_wrapper.h"
 #include "logger.h"
 
 extern Logger Log;

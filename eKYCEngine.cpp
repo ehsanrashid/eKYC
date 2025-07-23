@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "helper.h"
-#include "include/pg_wrapper.h"
+#include "pg_wrapper.h"
 #include "output/my_app_messages/Char64str.h"
 #include "output/my_app_messages/IdentityMessage.h"
 #include "output/my_app_messages/MessageHeader.h"

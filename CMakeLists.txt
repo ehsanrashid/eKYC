@@ -21,19 +21,21 @@ set(CXX_WARNINGS_AS_ERRORS OFF CACHE BOOL "Disable warnings as errors")
 
 FetchContent_MakeAvailable(aeron)
 
+# Find PostgreSQL first (required by libpqxx)
+find_package(PostgreSQL REQUIRED)
 
 # Find libpqxx
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED libpqxx)
 
+include_directories(${PQXX_INCLUDE_DIRS})
+link_directories(${PQXX_LIBRARY_DIRS})
 
 # Collect source files
 file(GLOB SOURCE_FILES "*.cpp" )
 
-
 # Create a single eKYC executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
 
 # Include Aeron headers and project includes
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -46,10 +48,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/libaeronWrapper.a
+    ${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
     /usr/local/lib/libloggerlib.a
     aeron_client
-    ${PQXX_LIBRARIES}
-    ${CMAKE_SOURCE_DIR}/lib/libpgWrapper.a
     aeron_driver
+    ${PQXX_LIBRARIES}
+    ${PQXX_LDFLAGS}
     pthread
 )

@@ -7,11 +7,11 @@
 #include <iostream>
 #include <vector>
 
-#include "Char64str.h"
-#include "IdentityMessage.h"
-#include "MessageHeader.h"
 #include "helper.h"
 #include "include/pg_wrapper.h"
+#include "output/my_app_messages/Char64str.h"
+#include "output/my_app_messages/IdentityMessage.h"
+#include "output/my_app_messages/MessageHeader.h"
 
 // Use the SBE namespace
 using namespace my::app::messages;

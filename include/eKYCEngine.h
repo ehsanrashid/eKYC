@@ -5,10 +5,9 @@
 #include <string>
 #include <thread>
 
-
 #include "aeron_wrapper.h"
-#include "pg_wrapper.h"
 #include "logger.h"
+#include "pg_wrapper.h"
 
 extern Logger Log;
 

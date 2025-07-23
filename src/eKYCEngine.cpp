@@ -7,16 +7,13 @@
 #include <iostream>
 #include <vector>
 
-#include "helper.h"
-#include "pg_wrapper.h"
 #include "Char64str.h"
 #include "IdentityMessage.h"
 #include "MessageHeader.h"
-
-// Use the SBE namespace
-using namespace messages;
+#include "helper.h"
 
 namespace {
+
 void log_identity(messages::IdentityMessage& identity) {
     Log.info_fast("msg: {}", identity.msg().getCharValAsString());
     Log.info_fast("type: {}", identity.type().getCharValAsString());
@@ -29,20 +26,22 @@ void log_identity(messages::IdentityMessage& identity) {
     Log.info_fast("address: {}", identity.address().getCharValAsString());
     Log.info_fast("verified: {}", identity.verified().getCharValAsString());
 }
+
 }  // namespace
 
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
-        db_ = std::make_unique<pg_wrapper::Database>(
-            "localhost", "5432", "ekycdb", "huzaifa", "3214");
-
-        Log.info_fast("Connected to PostGreSQL EKYCDB");
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info_fast("Connected to Aeron Media Driver...");
         subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
         publication_ = aeron_->create_publication(PublicationChannel,  //
                                                   PublicationStreamId);
+
+        db_ = std::make_unique<pg_wrapper::Database>(
+            "localhost", "5432", "ekycdb", "huzaifa", "3214");
+        Log.info_fast("Connected to PostGreSQL EKYCDB");
+
         running_ = true;
     } catch (const std::exception& e) {
         Log.info_fast("Error: {}", e.what());
@@ -68,7 +67,7 @@ void eKYCEngine::stop() {
     }
     if (db_) {
         db_->close();
-        Log.info_fast("PostGre EKYCDB connection closed!");
+        Log.info_fast("PostGre connection closed!");
     }
     running_ = false;
     Log.info_fast("eKYC engine stopped.");
@@ -97,8 +96,7 @@ bool eKYCEngine::user_exists(const std::string& identity_number,
 }
 
 // Add user to system
-bool eKYCEngine::add_user_to_system(
-    messages::IdentityMessage& identity) {
+bool eKYCEngine::add_user_to_system(messages::IdentityMessage& identity) {
     if (!db_) {
         Log.error_fast("Database connection not available for adding user");
         return false;
@@ -151,9 +149,8 @@ bool eKYCEngine::add_user_to_system(
 }
 
 // Send response message
-void eKYCEngine::send_response(
-    messages::IdentityMessage& original_identity,
-    bool verification_result) {
+void eKYCEngine::send_response(messages::IdentityMessage& original_identity,
+                               bool verification_result) {
     if (!publication_) {
         Log.error_fast("Publication not available for sending response");
         return;
@@ -217,8 +214,7 @@ void eKYCEngine::send_response(
 }
 
 // Add verification method
-void eKYCEngine::verify_and_respond(
-    messages::IdentityMessage& identity) {
+void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
     std::string msg_type = identity.msg().getCharValAsString();
     bool is_verified = string_to_bool(identity.verified().getCharValAsString());
 

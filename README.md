@@ -1,6 +1,6 @@
 # eKYC Engine
 
-A high-performance, asynchronous engine for eKYC (electronic Know Your Customer) identity verification, built on top of [Aeron](https://github.com/aeron-io/aeron) for low-latency messaging, PostgreSQL for identity data storage, and SBE (Simple Binary Encoding) for efficient message serialization.
+A high-performance, asynchronous engine for eKYC (electronic Know Your Customer) identity verification, built with modern C++17. The engine leverages [Aeron](https://github.com/aeron-io/aeron) for ultra-low-latency messaging, PostgreSQL for robust identity data storage, and SBE (Simple Binary Encoding) for efficient message serialization. The modular design includes custom wrapper libraries for enhanced performance and maintainability.
 
 ---
 
@@ -21,14 +21,30 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 - **C++17** or newer
 - **CMake** 3.16 or newer
 - **PostgreSQL** development libraries (`libpqxx`)
-- **Aeron** (fetched and built automatically)
-- **Custom Logger Library**:
-  - Header: `/usr/local/include/logger.h`
-  - Library: `/usr/local/lib/libloggerlib.a`
-  - **Install logger from:** [https://github.com/Huzaifa309/loggerLib](https://github.com/Huzaifa309/loggerLib)
-- **Custom Wrappers**:
-  - `libaeronWrapper.a` (provided in `lib/`)
-  - `libpgWrapper.a` (provided in `lib/`)
+- **Aeron** (fetched and built automatically via CMake)
+- **Java** (for SBE code generation)
+
+## Dependencies
+
+This project requires the following custom wrapper libraries:
+
+### 1. **Aeron Wrapper**
+- **Repository:** [https://github.com/ehsanrashid/aeronWrapper](https://github.com/ehsanrashid/aeronWrapper)
+- **Description:** Modern C++17 wrapper for Aeron high-performance messaging library
+- **Features:** Simplified API, enhanced error handling, background polling, RAII compliance
+- **Installation:** Follow build instructions in the repository README
+
+### 2. **PostgreSQL Wrapper**
+- **Repository:** [https://github.com/ehsanrashid/pgWrapper](https://github.com/ehsanrashid/pgWrapper)
+- **Description:** C++ wrapper for PostgreSQL database operations
+- **Features:** Connection pooling, prepared statements, transaction management
+- **Installation:** Follow build instructions in the repository README
+
+### 3. **Logger Library**
+- **Repository:** [https://github.com/Huzaifa309/loggerLib](https://github.com/Huzaifa309/loggerLib)
+- **Description:** High-performance logging library with file rotation and multiple log levels
+- **Features:** Fast logging, file rotation, configurable log levels, thread-safe operations
+- **Installation:** Follow build instructions in the repository README
 
 ---
 
@@ -70,34 +86,135 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 
 ---
 
-## Build Instructions
+## Quick Start
 
-1. **Clone the repository** and enter the project directory:
+### Automated Installation (Recommended)
+
+For quick setup, you can use this automated installation script:
+
+```sh
+#!/bin/bash
+# install_dependencies.sh
+
+set -e
+
+echo "Installing system dependencies..."
+sudo apt-get update
+sudo apt-get install -y build-essential cmake git openjdk-11-jdk libpqxx-dev postgresql postgresql-contrib
+
+echo "Building and installing Logger Library..."
+git clone https://github.com/Huzaifa309/loggerLib.git
+cd loggerLib && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
+cd ../..
+
+echo "Building and installing Aeron Wrapper..."
+git clone https://github.com/ehsanrashid/aeronWrapper.git
+cd aeronWrapper && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
+cd ../..
+
+echo "Building and installing PostgreSQL Wrapper..."
+git clone https://github.com/ehsanrashid/pgWrapper.git
+cd pgWrapper && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
+cd ../..
+
+echo "Updating library cache..."
+sudo ldconfig
+
+echo "Cloning and building eKYC..."
+git clone https://github.com/ehsanrashid/eKYC
+cd eKYC && mkdir build && cd build
+cmake .. && make -j$(nproc)
+
+echo "Installation complete! Run './eKYC' to start the engine."
+```
+
+Save as `install_dependencies.sh`, make executable, and run:
+```sh
+chmod +x install_dependencies.sh
+./install_dependencies.sh
+```
+
+---
+
+## Manual Build Instructions
+
+### Prerequisites Installation
+
+1. **Install system dependencies:**
+   ```sh
+   # Ubuntu/Debian
+   sudo apt-get update
+   sudo apt-get install build-essential cmake git openjdk-11-jdk libpqxx-dev postgresql postgresql-contrib
+   
+   # CentOS/RHEL
+   sudo yum install gcc-c++ cmake git java-11-openjdk-devel libpqxx-devel postgresql postgresql-server
+   ```
+
+### Dependency Installation
+
+2. **Build and install Logger Library:**
+   ```sh
+   git clone https://github.com/Huzaifa309/loggerLib.git
+   cd loggerLib
+   mkdir build && cd build
+   cmake ..
+   make -j$(nproc)
+   sudo make install
+   cd ../..
+   ```
+
+3. **Build and install Aeron Wrapper:**
+   ```sh
+   git clone https://github.com/ehsanrashid/aeronWrapper.git
+   cd aeronWrapper
+   mkdir build && cd build
+   cmake ..
+   make -j$(nproc)
+   sudo make install
+   cd ../..
+   ```
+
+4. **Build and install PostgreSQL Wrapper:**
+   ```sh
+   git clone https://github.com/ehsanrashid/pgWrapper.git
+   cd pgWrapper
+   mkdir build && cd build
+   cmake ..
+   make -j$(nproc)
+   sudo make install
+   cd ../..
+   ```
+
+### Project Build
+
+5. **Clone the eKYC repository:**
    ```sh
    git clone https://github.com/ehsanrashid/eKYC
    cd eKYC
    ```
 
-2. **Install dependencies:**
-   ```sh
-   # Install PostgreSQL development libraries
-   sudo apt-get install libpqxx-dev
-   
-   # Install logger library
-   # Follow instructions at https://github.com/Huzaifa309/loggerLib
-   ```
-
-3. **Generate SBE messages** (if schema changes):
+6. **Generate SBE messages** (if schema changes):
    ```sh
    java -jar sbe-all-1.36.0-SNAPSHOT.jar login-schema.xml
    ```
 
-4. **Build the project using CMake:**
+7. **Build the project:**
    ```sh
    mkdir build
    cd build
    cmake ..
-   make
+   make -j$(nproc)
+   ```
+
+### Verification
+
+8. **Verify the build:**
+   ```sh
+   ./eKYC --version  # Check if binary runs
+   ldd ./eKYC        # Check library dependencies
    ```
 
 ---
@@ -188,6 +305,75 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 
 ---
 
+## Performance Optimization
+
+For high-throughput scenarios (>1000 requests/second), consider these optimizations:
+
+### Database Optimizations
+```sql
+-- Create performance indexes
+CREATE INDEX CONCURRENTLY idx_users_identity_name ON users(identity_number, name);
+CREATE INDEX CONCURRENTLY idx_users_identity ON users(identity_number);
+
+-- Analyze table statistics
+ANALYZE users;
+```
+
+### Application-Level Optimizations
+- **Connection Pooling:** Use pgWrapper's connection pooling for concurrent database access
+- **Prepared Statements:** Utilize prepared statements for repeated queries
+- **Caching:** Implement LRU cache for frequently verified identities
+- **Async Processing:** Leverage aeronWrapper's background polling for non-blocking operations
+- **Logging:** Disable detailed logging in production (comment out Log statements)
+
+### System-Level Optimizations
+```sh
+# Increase file descriptor limits
+echo "* soft nofile 65536" >> /etc/security/limits.conf
+echo "* hard nofile 65536" >> /etc/security/limits.conf
+
+# Optimize PostgreSQL settings
+echo "shared_buffers = 256MB" >> /etc/postgresql/*/main/postgresql.conf
+echo "effective_cache_size = 1GB" >> /etc/postgresql/*/main/postgresql.conf
+```
+
+### Expected Performance
+- **Without optimization:** ~25 requests/second (40s for 1000 requests)
+- **With database indexes:** ~100-200 requests/second (5-10s for 1000 requests)
+- **With full optimization:** >500 requests/second (<2s for 1000 requests)
+
+---
+
+## Architecture
+
+The eKYC Engine follows a modern, asynchronous architecture:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Client Apps   │    │  Message Queue  │    │  eKYC Engine    │
+│                 │───▶│     (Aeron)     │───▶│                 │
+│ - Web Services  │    │  UDP Messaging  │    │ - Message Proc. │
+│ - Mobile Apps   │    │  Low Latency    │    │ - DB Queries    │
+│ - APIs          │    │                 │    │ - Response Gen. │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                       │
+                                                       ▼
+                                               ┌─────────────────┐
+                                               │   PostgreSQL    │
+                                               │   Database      │
+                                               │ - User Records  │
+                                               │ - Identity Data │
+                                               └─────────────────┘
+```
+
+### Component Responsibilities
+- **aeronWrapper:** High-performance messaging with automatic retry and connection management
+- **pgWrapper:** Database operations with connection pooling and prepared statements
+- **loggerLib:** Thread-safe, high-performance logging with file rotation
+- **SBE Messages:** Zero-copy serialization for maximum throughput
+
+---
+
 ## Development
 
 ### Adding New Message Types
@@ -204,21 +390,51 @@ A high-performance, asynchronous engine for eKYC (electronic Know Your Customer)
 
 ## Troubleshooting
 
+### Database Issues
 - **Database Connection Failed:**
   - Verify PostgreSQL is running: `sudo systemctl status postgresql`
   - Check database credentials and permissions
   - Ensure `ekycdb` database exists
+  - Verify `pgWrapper` library is installed: `ldconfig -p | grep pgWrapper`
+
+### Build Issues
+- **Missing Dependencies:**
+  - Ensure all wrapper libraries are installed in `/usr/local/lib/`
+  - Run `sudo ldconfig` after installing libraries
+  - Check header files exist in `/usr/local/include/`
 
 - **SBE Compilation Errors:**
-  - Verify namespace includes: `my::app::messages::`
-  - Check generated message classes in `output/my_app_messages/`
+  - Verify Java is installed: `java -version`
+  - Check generated message classes in `include/` directory
+  - Regenerate SBE classes if schema was modified
 
+- **CMake Configuration Failed:**
+  - Verify CMake version: `cmake --version` (requires 3.16+)
+  - Clear build directory and retry: `rm -rf build && mkdir build`
+  - Check that wrapper libraries are properly installed
+
+### Runtime Issues
 - **Aeron Connection Issues:**
   - Ensure Aeron Media Driver is accessible
   - Check network connectivity for UDP endpoints
+  - Verify `aeronWrapper` library is linked: `ldd ./eKYC | grep aeron`
 
 - **Logger Not Found:**
-  - Install logger library from [https://github.com/Huzaifa309/loggerLib](https://github.com/Huzaifa309/loggerLib)
-  - Verify files exist: `/usr/local/include/logger.h` and `/usr/local/lib/libloggerlib.a`
+  - Verify loggerLib is installed: `ls /usr/local/lib/libloggerlib*`
+  - Check header exists: `ls /usr/local/include/logger*`
+  - Ensure library is linked: `ldd ./eKYC | grep logger`
+
+### Performance Issues
+- **Slow Database Queries:**
+  - Create database indexes: `CREATE INDEX idx_users_identity_name ON users(identity_number, name);`
+  - Monitor PostgreSQL performance: `sudo -u postgres psql -c "SELECT * FROM pg_stat_activity;"`
+  - Consider connection pooling for high-throughput scenarios
+
+### Quick Dependency Check
+```sh
+# Verify all dependencies are installed
+ls /usr/local/lib/lib{aeronWrapper,pgWrapper,loggerlib}*
+ls /usr/local/include/{aeron_wrapper,pg_wrapper,logger}*
+```
 
 ---

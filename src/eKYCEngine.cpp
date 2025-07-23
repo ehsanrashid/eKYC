@@ -146,7 +146,6 @@ bool eKYCEngine::add_user_to_system(messages::IdentityMessage& identity) {
         Log.error_fast("Error adding user to system: {}", e.what());
         return false;
     }
-    
 }
 
 // Send response message

@@ -39,8 +39,6 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 # Include Aeron headers and project includes
 target_include_directories(${PROJECT_NAME} PRIVATE 
-    ${aeron_SOURCE_DIR}/aeron-client/src/main/cpp
-    ${aeron_SOURCE_DIR}/aeron-driver/src/main/c
     /usr/local/include
     ${CMAKE_SOURCE_DIR}/output/my_app_messages
 )
@@ -52,6 +50,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     aeron_client
     aeron_driver
     ${PQXX_LIBRARIES}
-    ${PQXX_LDFLAGS}
-    pthread
 )

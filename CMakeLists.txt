@@ -21,15 +21,12 @@ set(CXX_WARNINGS_AS_ERRORS OFF CACHE BOOL "Disable warnings as errors")
 
 FetchContent_MakeAvailable(aeron)
 
-# Collect source files
-file(GLOB SOURCE_FILES "src/*.cpp")
-
 # Find libpqxx
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED libpqxx)
 
 # Collect source files
-file(GLOB SOURCE_FILES "src/*.cpp" )
+file(GLOB SOURCE_FILES "src/*.cpp")
 
 # Create a single eKYC executable
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})

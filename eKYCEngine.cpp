@@ -49,13 +49,7 @@ eKYCEngine::eKYCEngine() : running_(false) {
     }
 }
 
-eKYCEngine::~eKYCEngine() {
-    stop();
-    if (db_) {
-        db_->close();
-        Log.info_fast("PostGre EKYCDB connection closed!");
-    }
-}
+eKYCEngine::~eKYCEngine() { stop(); }
 
 void eKYCEngine::start() {
     if (!running_) return;
@@ -72,7 +66,10 @@ void eKYCEngine::stop() {
     if (backgroundPoller_) {
         backgroundPoller_->stop();
     }
-
+    if (db_) {
+        db_->close();
+        Log.info_fast("PostGre EKYCDB connection closed!");
+    }
     running_ = false;
     Log.info_fast("eKYC engine stopped.");
 }

@@ -12,10 +12,8 @@
 #include "MessageHeader.h"
 #include "helper.h"
 
-// Use the SBE namespace
-using namespace messages;
-
 namespace {
+
 void log_identity(messages::IdentityMessage& identity) {
     Log.info_fast("msg: {}", identity.msg().getCharValAsString());
     Log.info_fast("type: {}", identity.type().getCharValAsString());
@@ -28,6 +26,7 @@ void log_identity(messages::IdentityMessage& identity) {
     Log.info_fast("address: {}", identity.address().getCharValAsString());
     Log.info_fast("verified: {}", identity.verified().getCharValAsString());
 }
+
 }  // namespace
 
 eKYCEngine::eKYCEngine() : running_(false) {
@@ -67,7 +66,7 @@ void eKYCEngine::stop() {
     }
     if (db_) {
         db_->close();
-        Log.info_fast("PostGre EKYCDB connection closed!");
+        Log.info_fast("PostGre connection closed!");
     }
     running_ = false;
     Log.info_fast("eKYC engine stopped.");

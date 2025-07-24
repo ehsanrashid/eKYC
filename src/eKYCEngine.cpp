@@ -5,10 +5,10 @@
 #include <iostream>
 #include <vector>
 
-#include "Char64str.h"
-#include "IdentityMessage.h"
-#include "MessageHeader.h"
 #include "helper.h"
+#include "messages/Char64str.h"
+#include "messages/IdentityMessage.h"
+#include "messages/MessageHeader.h"
 
 namespace {
 

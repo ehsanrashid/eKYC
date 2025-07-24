@@ -3,7 +3,6 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#include <thread>
 
 #include "aeron_wrapper.h"
 #include "logger.h"

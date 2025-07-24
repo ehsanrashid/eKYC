@@ -1,8 +1,6 @@
 #include "eKYCEngine.h"
 
-#include <atomic>
 #include <chrono>
-#include <csignal>
 #include <exception>
 #include <iostream>
 #include <vector>

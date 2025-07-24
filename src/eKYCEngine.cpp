@@ -74,7 +74,7 @@ void eKYCEngine::stop() {
 }
 
 // Check if user exists in database
-bool eKYCEngine::user_exists(const std::string& identity_number,
+bool eKYCEngine::user_exists(const std::string& identityNumber,
                              const std::string& name) {
     if (!db_) {
         Log.error_fast("Database connection not available for user check");
@@ -85,7 +85,7 @@ bool eKYCEngine::user_exists(const std::string& identity_number,
         std::string query =
             "SELECT identity_number, name FROM users WHERE identity_number = "
             "'" +
-            identity_number + "' AND name = '" + name + "'";
+            identityNumber + "' AND name = '" + name + "'";
         auto result = db_->exec(query);
         return !result.empty();
     } catch (const pg_wrapper::DatabaseError& e) {
@@ -104,39 +104,38 @@ bool eKYCEngine::add_user_to_system(messages::IdentityMessage& identity) {
 
     try {
         std::string type = identity.type().getCharValAsString();
-        std::string identity_number = identity.id().getCharValAsString();
+        std::string identityNumber = identity.id().getCharValAsString();
         std::string name = identity.name().getCharValAsString();
-        std::string date_of_issue = identity.dateOfIssue().getCharValAsString();
-        std::string date_of_expiry =
-            identity.dateOfExpiry().getCharValAsString();
+        std::string dateOfIssue = identity.dateOfIssue().getCharValAsString();
+        std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
         std::string address = identity.address().getCharValAsString();
 
         Log.info_fast("Adding user to system: name={}, id={}, type={}", name,
-                      identity_number, type);
+                      identityNumber, type);
 
         // Check if user already exists using the reusable method
-        if (user_exists(identity_number, name)) {
+        if (user_exists(identityNumber, name)) {
             Log.info_fast("User already exists in system: {} {} ({})", name,
-                          identity_number, type);
+                          identityNumber, type);
             return false;  // User already exists, don't add duplicate
         }
 
         Log.info_fast(
             "User not found in system, proceeding with addition: {} {}", name,
-            identity_number);
+            identityNumber);
 
         // Insert user into database
-        std::string insert_query =
+        std::string insertQuery =
             "INSERT INTO users (type, identity_number, name, date_of_issue, "
             "date_of_expiry, address) "
             "VALUES ('" +
-            type + "', '" + identity_number + "', '" + name + "', '" +
-            date_of_issue + "', '" + date_of_expiry + "', '" + address + "')";
+            type + "', '" + identityNumber + "', '" + name + "', '" +
+            dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        auto result = db_->exec(insert_query);
+        auto result = db_->exec(insertQuery);
 
         Log.info_fast("User successfully added to system: {} {} ({})", name,
-                      identity_number, type);
+                      identityNumber, type);
         return true;
 
     } catch (const pg_wrapper::DatabaseError& e) {
@@ -149,8 +148,8 @@ bool eKYCEngine::add_user_to_system(messages::IdentityMessage& identity) {
 }
 
 // Send response message
-void eKYCEngine::send_response(messages::IdentityMessage& original_identity,
-                               bool verification_result) {
+void eKYCEngine::send_response(messages::IdentityMessage& originalIdentity,
+                               bool verificationResult) {
     if (!publication_) {
         Log.error_fast("Publication not available for sending response");
         return;
@@ -179,17 +178,17 @@ void eKYCEngine::send_response(messages::IdentityMessage& original_identity,
         // Copy original data but update verification status and message
         response.msg().putCharVal("Identity Verification Response");
         response.type().putCharVal(
-            original_identity.type().getCharValAsString());
-        response.id().putCharVal(original_identity.id().getCharValAsString());
+            originalIdentity.type().getCharValAsString());
+        response.id().putCharVal(originalIdentity.id().getCharValAsString());
         response.name().putCharVal(
-            original_identity.name().getCharValAsString());
+            originalIdentity.name().getCharValAsString());
         response.dateOfIssue().putCharVal(
-            original_identity.dateOfIssue().getCharValAsString());
+            originalIdentity.dateOfIssue().getCharValAsString());
         response.dateOfExpiry().putCharVal(
-            original_identity.dateOfExpiry().getCharValAsString());
+            originalIdentity.dateOfExpiry().getCharValAsString());
         response.address().putCharVal(
-            original_identity.address().getCharValAsString());
-        response.verified().putCharVal(verification_result ? "true" : "false");
+            originalIdentity.address().getCharValAsString());
+        response.verified().putCharVal(verificationResult ? "true" : "false");
 
         // Send the response
         if (publication_->is_connected()) {
@@ -198,9 +197,9 @@ void eKYCEngine::send_response(messages::IdentityMessage& original_identity,
                 bufferCapacity);
             if (result == aeron_wrapper::PublicationResult::SUCCESS) {
                 Log.info_fast("Response sent successfully: {} for {} {}",
-                              verification_result ? "VERIFIED" : "NOT VERIFIED",
-                              original_identity.name().getCharValAsString(),
-                              original_identity.id().getCharValAsString());
+                              verificationResult ? "VERIFIED" : "NOT VERIFIED",
+                              originalIdentity.name().getCharValAsString(),
+                              originalIdentity.id().getCharValAsString());
             } else {
                 Log.error_fast("Failed to send response: {}",
                                static_cast<int>(result));
@@ -227,9 +226,9 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
                       name, id);
 
         // Invoke verification method
-        bool verification_result = verify_identity(name, id);
+        bool verificationResult = verify_identity(name, id);
 
-        if (verification_result) {
+        if (verificationResult) {
             Log.info_fast("Verification successful for {} {}", name, id);
             // Send back verified message with verified=true
             send_response(identity, true);

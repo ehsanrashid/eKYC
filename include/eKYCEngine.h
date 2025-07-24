@@ -43,7 +43,7 @@ class eKYCEngine {
     bool verify_identity(const std::string& name, const std::string& id);
     bool user_exists(const std::string& identityNumber,
                      const std::string& name);
-    bool add_user_to_system(messages::IdentityMessage& identity);
+    bool add_identity(messages::IdentityMessage& identity);
 
     // Aeron components
     std::unique_ptr<aeron_wrapper::Aeron> aeron_;

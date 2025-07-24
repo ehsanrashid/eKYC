@@ -94,7 +94,7 @@ bool eKYCEngine::user_exists(const std::string& identityNumber,
 }
 
 // Add user to system
-bool eKYCEngine::add_user_to_system(messages::IdentityMessage& identity) {
+bool eKYCEngine::add_identity(messages::IdentityMessage& identity) {
     if (!db_) {
         Log.error_fast("Database connection not available for adding user");
         return false;
@@ -245,9 +245,9 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
                       id);
 
         // Add user to database
-        bool add_result = add_user_to_system(identity);
+        bool addResult = add_identity(identity);
 
-        if (add_result) {
+        if (addResult) {
             Log.info_fast("User addition successful for {} {}", name, id);
             // Send back response with verified=true (user added successfully)
             send_response(identity, true);

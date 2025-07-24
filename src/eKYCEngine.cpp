@@ -170,23 +170,23 @@ void eKYCEngine::send_response(messages::IdentityMessage& originalIdentity,
         offset += msgHeader.encodedLength();
 
         // Encode response message
-        IdentityMessage response;
-        response.wrapForEncode(sbeBuffer.data(), offset, bufferCapacity);
+        IdentityMessage identity;
+        identity.wrapForEncode(sbeBuffer.data(), offset, bufferCapacity);
 
         // Copy original data but update verification status and message
-        response.msg().putCharVal("Identity Verification Response");
-        response.type().putCharVal(
+        identity.msg().putCharVal("Identity Verification Response");
+        identity.type().putCharVal(
             originalIdentity.type().getCharValAsString());
-        response.id().putCharVal(originalIdentity.id().getCharValAsString());
-        response.name().putCharVal(
+        identity.id().putCharVal(originalIdentity.id().getCharValAsString());
+        identity.name().putCharVal(
             originalIdentity.name().getCharValAsString());
-        response.dateOfIssue().putCharVal(
+        identity.dateOfIssue().putCharVal(
             originalIdentity.dateOfIssue().getCharValAsString());
-        response.dateOfExpiry().putCharVal(
+        identity.dateOfExpiry().putCharVal(
             originalIdentity.dateOfExpiry().getCharValAsString());
-        response.address().putCharVal(
+        identity.address().putCharVal(
             originalIdentity.address().getCharValAsString());
-        response.verified().putCharVal(verificationResult ? "true" : "false");
+        identity.verified().putCharVal(verificationResult ? "true" : "false");
 
         // Send the response
         if (publication_->is_connected()) {

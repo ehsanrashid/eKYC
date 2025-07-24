@@ -212,11 +212,11 @@ void eKYCEngine::send_response(messages::IdentityMessage& originalIdentity,
 
 // Add verification method
 void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
-    std::string msg_type = identity.msg().getCharValAsString();
+    std::string msgType = identity.msg().getCharValAsString();
     bool isVerified = string_to_bool(identity.verified().getCharValAsString());
 
     // Check if this is an "Identity Verification Request" with verified=false
-    if (msg_type == "Identity Verification Request" && !isVerified) {
+    if (msgType == "Identity Verification Request" && !isVerified) {
         std::string name = identity.name().getCharValAsString();
         std::string id = identity.id().getCharValAsString();
 
@@ -237,7 +237,7 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
         }
     }
     // Check if this is an "Add User in System" request with verified=false
-    else if (msg_type == "Add User in System" && !isVerified) {
+    else if (msgType == "Add User in System" && !isVerified) {
         std::string name = identity.name().getCharValAsString();
         std::string id = identity.id().getCharValAsString();
 
@@ -260,7 +260,7 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
         Log.info_fast("Identity already verified: {}",
                       identity.name().getCharValAsString());
     } else {
-        Log.info_fast("Message type '{}' - no action needed", msg_type);
+        Log.info_fast("Message type '{}' - no action needed", msgType);
     }
 }
 

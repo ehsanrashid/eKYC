@@ -10,7 +10,6 @@
 // Local Headers include
 #include "eKYCEngine.h"
 #include "logger.h"
-#include "loggerwrapper.h"
 
 Logger Log("logs/Gateway_SBE.log", 10 * 1024 * 1024);
 

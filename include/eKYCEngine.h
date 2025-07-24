@@ -19,13 +19,11 @@ class eKYCEngine {
    public:
     static constexpr const char* AeronDir = "";
 
-    static constexpr const char* SubscriptionChannel =
-        "aeron:udp?endpoint=0.0.0.0:50000";
+    static constexpr const char* SubscriptionChannel = "aeron:ipc";
     static constexpr int SubscriptionStreamId = 1001;
 
-    static constexpr const char* PublicationChannel =
-        "aeron:udp?endpoint=anas.eagri.com:10001";
-    static constexpr int PublicationStreamId = 1001;
+    static constexpr const char* PublicationChannel = "aeron:ipc";
+    static constexpr int PublicationStreamId = 2001;
 
     eKYCEngine();
 

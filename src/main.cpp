@@ -8,10 +8,12 @@
 #include <thread>
 
 // Local Headers include
+#include "TimerLite.h"
 #include "eKYCEngine.h"
 #include "logger.h"
 
 Logger Log("logs/Gateway_SBE.log", 20 * 1024 * 1024);
+TimerLite timer;
 
 int main(int argc, char** argv) {
     Log.set_log_level(LogLevel::DEBUG);
@@ -35,6 +37,7 @@ int main(int argc, char** argv) {
         if (inputThread.joinable()) inputThread.join();
 
         eKYC->stop();
+        timer.report();
         return 0;
     } catch (const std::exception& e) {
         Log.error_fast("Error: {}", e.what());

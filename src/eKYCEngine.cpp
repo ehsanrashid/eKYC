@@ -12,7 +12,8 @@
 
 namespace {
 
-void log_identity(messages::IdentityMessage& identity) {
+void log_identity(messages::IdentityMessage &identity) {
+    timer.start("log_identity");
     Log.info_fast("msg: {}", identity.msg().getCharValAsString());
     Log.info_fast("type: {}", identity.type().getCharValAsString());
     Log.info_fast("id: {}", identity.id().getCharValAsString());
@@ -23,6 +24,7 @@ void log_identity(messages::IdentityMessage& identity) {
                   identity.dateOfExpiry().getCharValAsString());
     Log.info_fast("address: {}", identity.address().getCharValAsString());
     Log.info_fast("verified: {}", identity.verified().getCharValAsString());
+    timer.stop("log_identity");
 }
 
 }  // namespace
@@ -41,7 +43,7 @@ eKYCEngine::eKYCEngine() : running_(false) {
         Log.info_fast("Connected to PostGreSQL");
 
         running_ = true;
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         Log.info_fast("Error: {}", e.what());
     }
 }
@@ -53,7 +55,7 @@ void eKYCEngine::start() {
     Log.info_fast("Starting eKYC engine...");
     // Start background msg processing
     backgroundPoller_ = subscription_->start_background_polling(
-        [this](const aeron_wrapper::FragmentData& fragmentData) {
+        [this](const aeron_wrapper::FragmentData &fragmentData) {
             process_message(fragmentData);
         });
 }
@@ -71,9 +73,10 @@ void eKYCEngine::stop() {
     Log.info_fast("eKYC engine stopped.");
 }
 
-// Check if user exists in database
-bool eKYCEngine::user_exists(const std::string& identityNumber,
-                             const std::string& name) {
+// Check if user exists in database (with verification logging)
+bool eKYCEngine::user_exists(const std::string &identityNumber,
+                             const std::string &name) {
+    timer.start("user_exists");
     if (!db_) {
         Log.error_fast("Database connection not available for user check");
         return false;
@@ -85,8 +88,20 @@ bool eKYCEngine::user_exists(const std::string& identityNumber,
             "'" +
             identityNumber + "' AND name = '" + name + "'";
         auto result = db_->exec(query);
-        return !result.empty();
-    } catch (const pg_wrapper::DatabaseError& e) {
+
+        bool exists = !result.empty();
+
+        if (exists) {
+            Log.info_fast("Verified: {} {} found in database", identityNumber,
+                          name);
+        } else {
+            Log.info_fast("NOT verified: {} {} not found in database",
+                          identityNumber, name);
+        }
+
+        timer.stop("user_exists");
+        return exists;
+    } catch (const pg_wrapper::DatabaseError &e) {
         Log.error_fast("Database query error during user existence check: {}",
                        e.what());
         return false;
@@ -94,7 +109,8 @@ bool eKYCEngine::user_exists(const std::string& identityNumber,
 }
 
 // Add user to system
-bool eKYCEngine::add_identity(messages::IdentityMessage& identity) {
+bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
+    timer.start("add_identity");
     if (!db_) {
         Log.error_fast("Database connection not available for adding user");
         return false;
@@ -115,6 +131,7 @@ bool eKYCEngine::add_identity(messages::IdentityMessage& identity) {
         if (user_exists(identityNumber, name)) {
             Log.info_fast("User already exists in system: {} {} ({})", name,
                           identityNumber, type);
+            timer.stop("add_identity");
             return false;  // User already exists, don't add duplicate
         }
 
@@ -134,20 +151,22 @@ bool eKYCEngine::add_identity(messages::IdentityMessage& identity) {
 
         Log.info_fast("User successfully added to system: {} {} ({})", name,
                       identityNumber, type);
+        timer.stop("add_identity");
         return true;
 
-    } catch (const pg_wrapper::DatabaseError& e) {
+    } catch (const pg_wrapper::DatabaseError &e) {
         Log.error_fast("Database error while adding user: {}", e.what());
         return false;
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         Log.error_fast("Error adding user to system: {}", e.what());
         return false;
     }
 }
 
 // Send response message
-void eKYCEngine::send_response(messages::IdentityMessage& originalIdentity,
+void eKYCEngine::send_response(messages::IdentityMessage &originalIdentity,
                                bool verificationResult) {
+    timer.start("send_response");
     if (!publication_) {
         Log.error_fast("Publication not available for sending response");
         return;
@@ -191,7 +210,7 @@ void eKYCEngine::send_response(messages::IdentityMessage& originalIdentity,
         // Send the response
         if (publication_->is_connected()) {
             auto result = publication_->offer(
-                reinterpret_cast<const uint8_t*>(sbeBuffer.data()),
+                reinterpret_cast<const uint8_t *>(sbeBuffer.data()),
                 bufferCapacity);
             if (result == aeron_wrapper::PublicationResult::SUCCESS) {
                 Log.info_fast("Response sent successfully: {} for {} {}",
@@ -205,13 +224,15 @@ void eKYCEngine::send_response(messages::IdentityMessage& originalIdentity,
         } else {
             Log.error_fast("Publication not connected, cannot send response");
         }
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         Log.error_fast("Error sending response: {}", e.what());
     }
+    timer.stop("send_response");
 }
 
 // Add verification method
-void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
+void eKYCEngine::verify_and_respond(messages::IdentityMessage &identity) {
+    timer.start("verify_and_respond");
     std::string msgType = identity.msg().getCharValAsString();
     bool isVerified = string_to_bool(identity.verified().getCharValAsString());
 
@@ -224,7 +245,7 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
                       name, id);
 
         // Invoke verification method
-        bool verificationResult = verify_identity(name, id);
+        bool verificationResult = user_exists(id, name);
 
         if (verificationResult) {
             Log.info_fast("Verification successful for {} {}", name, id);
@@ -262,41 +283,27 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage& identity) {
     } else {
         Log.info_fast("Message type '{}' - no action needed", msgType);
     }
-}
-
-bool eKYCEngine::verify_identity(const std::string& name,
-                                 const std::string& id) {
-    Log.info_fast("Verifying identity: name={}, id={}", name, id);
-
-    // Use the reusable user_exists method
-    bool exists = user_exists(id, name);
-
-    if (exists) {
-        Log.info_fast("Identity verified: {} {} found in database", id, name);
-        return true;
-    } else {
-        Log.info_fast("Identity NOT verified: {} {} not found in database", id,
-                      name);
-        return false;
-    }
+    timer.stop("verify_and_respond");
 }
 
 void eKYCEngine::process_message(
-    const aeron_wrapper::FragmentData& fragmentData) {
+    const aeron_wrapper::FragmentData &fragmentData) {
     try {
+        timer.start("process_message");
         messages::MessageHeader msgHeader;
-        msgHeader.wrap(
-            reinterpret_cast<char*>(const_cast<uint8_t*>(fragmentData.buffer)),
-            0, 0, fragmentData.length);
+        msgHeader.wrap(reinterpret_cast<char *>(
+                           const_cast<uint8_t *>(fragmentData.buffer)),
+                       0, 0, fragmentData.length);
         size_t offset = msgHeader.encodedLength();
 
         if (msgHeader.templateId() ==
             messages::IdentityMessage::sbeTemplateId()) {
             messages::IdentityMessage identity;
-            identity.wrapForDecode(reinterpret_cast<char*>(const_cast<uint8_t*>(
-                                       fragmentData.buffer)),
-                                   offset, msgHeader.blockLength(),
-                                   msgHeader.version(), fragmentData.length);
+            identity.wrapForDecode(
+                reinterpret_cast<char *>(
+                    const_cast<uint8_t *>(fragmentData.buffer)),
+                offset, msgHeader.blockLength(), msgHeader.version(),
+                fragmentData.length);
 
             log_identity(identity);
 
@@ -306,7 +313,8 @@ void eKYCEngine::process_message(
                            msgHeader.templateId());
         }
 
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         Log.error_fast("Error: {}", e.what());
     }
+    timer.stop("process_message");
 }

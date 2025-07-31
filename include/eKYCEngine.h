@@ -6,10 +6,11 @@
 
 #include "TimerLite.h"
 #include "aeron_wrapper.h"
-#include "logger.h"
+#include "loggerwrapper.h"
 #include "pg_wrapper.h"
 
-extern Logger Log;
+extern LoggerWrapper Log;
+extern const int shard_id;
 extern TimerLite timer;
 // Forward declaration
 namespace messages {

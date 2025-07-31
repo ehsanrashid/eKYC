@@ -10,13 +10,15 @@
 // Local Headers include
 #include "TimerLite.h"
 #include "eKYCEngine.h"
-#include "logger.h"
+#include "loggerwrapper.h"
 
-Logger Log("logs/Gateway_SBE.log", 20 * 1024 * 1024);
+const int shard_id = 0;
+
+LoggerWrapper Log(1, "../logs/ekyc", 0);
 TimerLite timer;
 
 int main(int argc, char** argv) {
-    Log.set_log_level(LogLevel::DEBUG);
+    Log.set_log_level(shard_id, LogLevel::DEBUG);
 
     std::atomic<bool> keepRunning{true};
     // Start input monitoring thread
@@ -40,7 +42,7 @@ int main(int argc, char** argv) {
         timer.report();
         return 0;
     } catch (const std::exception& e) {
-        Log.error_fast("Error: {}", e.what());
+        Log.error_fast(shard_id, "Error: {}", e.what());
         return 1;
     }
 }

@@ -11,12 +11,12 @@
 #include "eKYCEngine.h"
 #include "loggerwrapper.h"
 
-const int shard_id = 0;
+const int ShardId = 0;
 
 LoggerWrapper Log(1, "../logs/ekyc", 0);
 
 int main(int argc, char** argv) {
-    Log.set_log_level(shard_id, LogLevel::DEBUG);
+    Log.set_log_level(ShardId, LogLevel::DEBUG);
 
     std::atomic<bool> keepRunning{true};
     // Start input monitoring thread
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
         eKYC->stop();
         return 0;
     } catch (const std::exception& e) {
-        Log.error_fast(shard_id, "Error: {}", e.what());
+        Log.error_fast(ShardId, "Error: {}", e.what());
         return 1;
     }
 }

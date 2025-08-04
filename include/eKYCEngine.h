@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <iosfwd>
 #include <memory>
 #include <string>
 
@@ -8,14 +9,14 @@
 #include "loggerwrapper.h"
 #include "pg_wrapper.h"
 
+extern const int ShardId;
 extern LoggerWrapper Log;
-extern const int shard_id;
 // Forward declaration
 namespace messages {
 class IdentityMessage;
 }
 
-class eKYCEngine {
+class eKYCEngine final {
    public:
     static constexpr const char *AeronDir = "";
 
@@ -37,12 +38,12 @@ class eKYCEngine {
 
    private:
     void process_message(const aeron_wrapper::FragmentData &fragmentData);
+
+    bool exist_user(const std::string &identityNumber, const std::string &name);
+    bool add_identity(messages::IdentityMessage &identity);
     void verify_and_respond(messages::IdentityMessage &identity);
     void send_response(messages::IdentityMessage &originalIdentity,
                        bool verificationResult);
-    bool user_exists(const std::string &identityNumber,
-                     const std::string &name);
-    bool add_identity(messages::IdentityMessage &identity);
 
     // Aeron components
     std::unique_ptr<aeron_wrapper::Aeron> aeron_;
@@ -50,8 +51,9 @@ class eKYCEngine {
     std::unique_ptr<aeron_wrapper::Publication> publication_;
     std::unique_ptr<aeron_wrapper::Subscription::BackgroundPoller>
         backgroundPoller_;
-    long int receiving_packets_ = 0;
-    std::atomic<bool> running_;
 
+    std::atomic<bool> running_;
+    long int packetsReceived_ = 0;
+    
     std::unique_ptr<pg_wrapper::Database> db_;
 };

@@ -13,17 +13,17 @@
 namespace {
 
 void log_identity(messages::IdentityMessage &identity) {
-    Log.info_fast(shard_id, "msg: {}", identity.msg().getCharValAsString());
-    Log.info_fast(shard_id, "type: {}", identity.type().getCharValAsString());
-    Log.info_fast(shard_id, "id: {}", identity.id().getCharValAsString());
-    Log.info_fast(shard_id, "name: {}", identity.name().getCharValAsString());
-    Log.info_fast(shard_id, "dateOfIssue: {}",
+    Log.info_fast(ShardId, "msg: {}", identity.msg().getCharValAsString());
+    Log.info_fast(ShardId, "type: {}", identity.type().getCharValAsString());
+    Log.info_fast(ShardId, "id: {}", identity.id().getCharValAsString());
+    Log.info_fast(ShardId, "name: {}", identity.name().getCharValAsString());
+    Log.info_fast(ShardId, "dateOfIssue: {}",
                   identity.dateOfIssue().getCharValAsString());
-    Log.info_fast(shard_id, "dateOfExpiry: {}",
+    Log.info_fast(ShardId, "dateOfExpiry: {}",
                   identity.dateOfExpiry().getCharValAsString());
-    Log.info_fast(shard_id, "address: {}",
+    Log.info_fast(ShardId, "address: {}",
                   identity.address().getCharValAsString());
-    Log.info_fast(shard_id, "verified: {}",
+    Log.info_fast(ShardId, "verified: {}",
                   identity.verified().getCharValAsString());
 }
 
@@ -32,7 +32,7 @@ void log_identity(messages::IdentityMessage &identity) {
 eKYCEngine::eKYCEngine() : running_(false) {
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
-        Log.info_fast(shard_id, "Connected to Aeron Media Driver...");
+        Log.info_fast(ShardId, "Connected to Aeron Media Driver...");
         subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
         publication_ = aeron_->create_publication(PublicationChannel,  //
@@ -40,11 +40,11 @@ eKYCEngine::eKYCEngine() : running_(false) {
 
         db_ = std::make_unique<pg_wrapper::Database>(
             "localhost", "5432", "ekycdb", "huzaifa", "3214");
-        Log.info_fast(shard_id, "Connected to PostGreSQL");
+        Log.info_fast(ShardId, "Connected to PostGreSQL");
 
         running_ = true;
     } catch (const std::exception &e) {
-        Log.info_fast(shard_id, "Error: {}", e.what());
+        Log.info_fast(ShardId, "Error: {}", e.what());
     }
 }
 
@@ -52,7 +52,7 @@ eKYCEngine::~eKYCEngine() { stop(); }
 
 void eKYCEngine::start() {
     if (!running_) return;
-    Log.info_fast(shard_id, "Starting eKYC engine...");
+    Log.info_fast(ShardId, "Starting eKYC engine...");
     // Start background msg processing
     backgroundPoller_ = subscription_->start_background_polling(
         [this](const aeron_wrapper::FragmentData &fragmentData) {
@@ -67,17 +67,17 @@ void eKYCEngine::stop() {
     }
     if (db_) {
         db_->close();
-        Log.info_fast(shard_id, "PostGreSQL connection closed!");
+        Log.info_fast(ShardId, "PostGreSQL connection closed!");
     }
     running_ = false;
-    Log.info_fast(shard_id, "eKYC engine stopped.");
+    Log.info_fast(ShardId, "eKYC engine stopped.");
 }
 
 // Check if user exists in database (with verification logging)
-bool eKYCEngine::user_exists(const std::string &identityNumber,
-                             const std::string &name) {
+bool eKYCEngine::exist_user(const std::string &identityNumber,
+                            const std::string &name) {
     if (!db_) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Database connection not available for user check");
         return false;
     }
@@ -92,16 +92,16 @@ bool eKYCEngine::user_exists(const std::string &identityNumber,
         bool exists = !result.empty();
 
         if (exists) {
-            Log.info_fast(shard_id, "Verified: {} {} found in database",
+            Log.info_fast(ShardId, "Verified: {} {} found in database",
                           identityNumber, name);
         } else {
-            Log.info_fast(shard_id, "NOT verified: {} {} not found in database",
+            Log.info_fast(ShardId, "NOT verified: {} {} not found in database",
                           identityNumber, name);
         }
 
         return exists;
     } catch (const pg_wrapper::DatabaseError &e) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Database query error during user existence check: {}",
                        e.what());
         return false;
@@ -111,7 +111,7 @@ bool eKYCEngine::user_exists(const std::string &identityNumber,
 // Add user to system
 bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
     if (!db_) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Database connection not available for adding user");
         return false;
     }
@@ -124,19 +124,19 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
         std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
         std::string address = identity.address().getCharValAsString();
 
-        Log.info_fast(shard_id,
+        Log.info_fast(ShardId,
                       "Adding user to system: name={}, id={}, type={}", name,
                       identityNumber, type);
 
         // Check if user already exists using the reusable method
-        if (user_exists(identityNumber, name)) {
-            Log.info_fast(shard_id, "User already exists in system: {} {} ({})",
+        if (exist_user(identityNumber, name)) {
+            Log.info_fast(ShardId, "User already exists in system: {} {} ({})",
                           name, identityNumber, type);
             return false;  // User already exists, don't add duplicate
         }
 
         Log.info_fast(
-            shard_id,
+            ShardId,
             "User not found in system, proceeding with addition: {} {}", name,
             identityNumber);
 
@@ -150,17 +150,76 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
 
         auto result = db_->exec(insertQuery);
 
-        Log.info_fast(shard_id, "User successfully added to system: {} {} ({})",
+        Log.info_fast(ShardId, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);
         return true;
 
     } catch (const pg_wrapper::DatabaseError &e) {
-        Log.error_fast(shard_id, "Database error while adding user: {}",
+        Log.error_fast(ShardId, "Database error while adding user: {}",
                        e.what());
         return false;
     } catch (const std::exception &e) {
-        Log.error_fast(shard_id, "Error adding user to system: {}", e.what());
+        Log.error_fast(ShardId, "Error adding user to system: {}", e.what());
         return false;
+    }
+}
+
+// Add verification method
+void eKYCEngine::verify_and_respond(messages::IdentityMessage &identity) {
+    std::string msgType = identity.msg().getCharValAsString();
+    bool isVerified = string_to_bool(identity.verified().getCharValAsString());
+
+    // Check if this is an "Identity Verification Request" with verified=false
+    if (msgType == "Identity Verification Request" && !isVerified) {
+        std::string name = identity.name().getCharValAsString();
+        std::string id = identity.id().getCharValAsString();
+
+        Log.info_fast(ShardId,
+                      "Processing Identity Verification Request for: {} {}",
+                      name, id);
+
+        // Invoke verification method
+        bool userExist = exist_user(id, name);
+
+        if (userExist) {
+            Log.info_fast(ShardId, "Verification successful for {} {}", name,
+                          id);
+            // Send back verified message with verified=true
+            send_response(identity, true);
+        } else {
+            Log.info_fast(ShardId, "Verification failed for {} {}", name, id);
+            // Send back message with verified=false
+            send_response(identity, false);
+        }
+    }
+    // Check if this is an "Add User in System" request with verified=false
+    else if (msgType == "Add User in System" && !isVerified) {
+        std::string name = identity.name().getCharValAsString();
+        std::string id = identity.id().getCharValAsString();
+
+        Log.info_fast(ShardId,
+                      "Processing Add User in System request for: {} {}", name,
+                      id);
+
+        // Add user to database
+        bool addResult = add_identity(identity);
+
+        if (addResult) {
+            Log.info_fast(ShardId, "User addition successful for {} {}", name,
+                          id);
+            // Send back response with verified=true (user added successfully)
+            send_response(identity, true);
+        } else {
+            Log.info_fast(ShardId, "User addition failed for {} {}", name, id);
+            // Send back response with verified=false (user addition failed)
+            send_response(identity, false);
+        }
+    } else if (isVerified) {
+        Log.info_fast(ShardId, "Identity already verified: {}",
+                      identity.name().getCharValAsString());
+    } else {
+        Log.info_fast(ShardId, "Message type '{}' - no action needed",
+                      msgType);
     }
 }
 
@@ -168,7 +227,7 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
 void eKYCEngine::send_response(messages::IdentityMessage &originalIdentity,
                                bool verificationResult) {
     if (!publication_) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Publication not available for sending response");
         return;
     }
@@ -214,85 +273,27 @@ void eKYCEngine::send_response(messages::IdentityMessage &originalIdentity,
                 reinterpret_cast<const uint8_t *>(sbeBuffer.data()),
                 bufferCapacity);
             if (result == aeron_wrapper::PublicationResult::SUCCESS) {
-                Log.info_fast(shard_id,
+                Log.info_fast(ShardId,
                               "Response sent successfully: {} for {} {}",
                               verificationResult ? "VERIFIED" : "NOT VERIFIED",
                               originalIdentity.name().getCharValAsString(),
                               originalIdentity.id().getCharValAsString());
             } else {
-                Log.error_fast(shard_id, "Failed to send response: {}",
+                Log.error_fast(ShardId, "Failed to send response: {}",
                                static_cast<int>(result));
             }
         } else {
-            Log.error_fast(shard_id,
+            Log.error_fast(ShardId,
                            "Publication not connected, cannot send response");
         }
     } catch (const std::exception &e) {
-        Log.error_fast(shard_id, "Error sending response: {}", e.what());
-    }
-}
-
-// Add verification method
-void eKYCEngine::verify_and_respond(messages::IdentityMessage &identity) {
-    std::string msgType = identity.msg().getCharValAsString();
-    bool isVerified = string_to_bool(identity.verified().getCharValAsString());
-
-    // Check if this is an "Identity Verification Request" with verified=false
-    if (msgType == "Identity Verification Request" && !isVerified) {
-        std::string name = identity.name().getCharValAsString();
-        std::string id = identity.id().getCharValAsString();
-
-        Log.info_fast(shard_id,
-                      "Processing Identity Verification Request for: {} {}",
-                      name, id);
-
-        // Invoke verification method
-        bool verificationResult = user_exists(id, name);
-
-        if (verificationResult) {
-            Log.info_fast(shard_id, "Verification successful for {} {}", name,
-                          id);
-            // Send back verified message with verified=true
-            send_response(identity, true);
-        } else {
-            Log.info_fast(shard_id, "Verification failed for {} {}", name, id);
-            // Send back message with verified=false
-            send_response(identity, false);
-        }
-    }
-    // Check if this is an "Add User in System" request with verified=false
-    else if (msgType == "Add User in System" && !isVerified) {
-        std::string name = identity.name().getCharValAsString();
-        std::string id = identity.id().getCharValAsString();
-
-        Log.info_fast(shard_id,
-                      "Processing Add User in System request for: {} {}", name,
-                      id);
-
-        // Add user to database
-        bool addResult = add_identity(identity);
-
-        if (addResult) {
-            Log.info_fast(shard_id, "User addition successful for {} {}", name,
-                          id);
-            // Send back response with verified=true (user added successfully)
-            send_response(identity, true);
-        } else {
-            Log.info_fast(shard_id, "User addition failed for {} {}", name, id);
-            // Send back response with verified=false (user addition failed)
-            send_response(identity, false);
-        }
-    } else if (isVerified) {
-        Log.info_fast(shard_id, "Identity already verified: {}",
-                      identity.name().getCharValAsString());
-    } else {
-        Log.info_fast(shard_id, "Message type '{}' - no action needed",
-                      msgType);
+        Log.error_fast(ShardId, "Error sending response: {}", e.what());
     }
 }
 
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData &fragmentData) {
+    ++packetsReceived_;
     try {
         messages::MessageHeader msgHeader;
         msgHeader.wrap(reinterpret_cast<char *>(
@@ -313,11 +314,11 @@ void eKYCEngine::process_message(
 
             verify_and_respond(identity);
         } else {
-            Log.error_fast(shard_id, "[Decoder] Unexpected template ID: {}",
+            Log.error_fast(ShardId, "[Decoder] Unexpected template ID: {}",
                            msgHeader.templateId());
         }
 
     } catch (const std::exception &e) {
-        Log.error_fast(shard_id, "Error: {}", e.what());
+        Log.error_fast(ShardId, "Error: {}", e.what());
     }
 }

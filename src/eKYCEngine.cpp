@@ -1,9 +1,7 @@
 #include "eKYCEngine.h"
 
-#include <chrono>
 #include <exception>
 #include <iostream>
-#include <vector>
 
 eKYCEngine::eKYCEngine() noexcept
     : running_(false), packetsReceived_(0), messageHandler_() {

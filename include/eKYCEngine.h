@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "MessageHandler.h"
 #include "aeron_wrapper.h"

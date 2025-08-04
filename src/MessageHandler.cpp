@@ -83,12 +83,12 @@ std::vector<char> MessageHandler::respond(
                 Log.info_fast(ShardId, "Verification successful for {} {}",
                               name, id);
                 // Send back verified message with verified=true
-                return get_buffer(identity, true);
+                buffer = get_buffer(identity, true);
             } else {
                 Log.info_fast(ShardId, "Verification failed for {} {}", name,
                               id);
                 // Send back message with verified=false
-                return get_buffer(identity, false);
+                buffer = get_buffer(identity, false);
             }
         }
         // Check if this is an "Add User in System" request with verified=false
@@ -108,12 +108,12 @@ std::vector<char> MessageHandler::respond(
                               name, id);
                 // Send back response with verified=true (user added
                 // successfully)
-                return get_buffer(identity, true);
+                buffer = get_buffer(identity, true);
             } else {
                 Log.info_fast(ShardId, "User addition failed for {} {}", name,
                               id);
                 // Send back response with verified=false (user addition failed)
-                return get_buffer(identity, false);
+                buffer = get_buffer(identity, false);
             }
         } else if (isVerified) {
             Log.info_fast(ShardId, "Identity already verified: {}",

@@ -140,21 +140,19 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
     }
 
     try {
-        std::string query =
+        std::string selectQuery =
             "SELECT identity_number, name FROM users WHERE identity_number = "
             "'" +
             identityNumber + "' AND name = '" + name + "'";
-        auto result = db_->exec(query);
+
+        auto result = db_->exec(selectQuery);
 
         bool exists = !result.empty();
 
-        if (exists) {
-            Log.info_fast(ShardId, "Verified: {} {} found in database",
-                          identityNumber, name);
-        } else {
-            Log.info_fast(ShardId, "NOT verified: {} {} not found in database",
-                          identityNumber, name);
-        }
+        Log.info_fast(ShardId,
+                      exists ? "Verified: {} {} found in database"
+                             : "NOT verified: {} {} not found in database",
+                      identityNumber, name);
 
         return exists;
     } catch (const pg_wrapper::DatabaseError &e) {
@@ -205,12 +203,12 @@ bool MessageHandler::add_identity(
             type + "', '" + identityNumber + "', '" + name + "', '" +
             dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        auto result = db_->exec(insertQuery);
+        db_->exec(insertQuery);
 
         Log.info_fast(ShardId, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);
-        return true;
 
+        return true;
     } catch (const pg_wrapper::DatabaseError &e) {
         Log.error_fast(ShardId, "Database error while adding user: {}",
                        e.what());

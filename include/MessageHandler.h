@@ -18,11 +18,16 @@ class IdentityMessage;
 
 class MessageHandler final {
    public:
-    void handle_message(const aeron_wrapper::FragmentData &fragmentData);
+    MessageHandler() noexcept;
+    ~MessageHandler() noexcept;
+
+    std::vector<char> handle_message(
+        const aeron_wrapper::FragmentData &fragmentData);
 
     bool exist_user(const std::string &identityNumber, const std::string &name);
     bool add_identity(messages::IdentityMessage &identity);
-    void verify_and_respond(messages::IdentityMessage &identity);
+    std::vector<char> get_buffer(messages::IdentityMessage &originalIdentity,
+                                 bool verificationResult);
 
    private:
     std::unique_ptr<pg_wrapper::Database> db_;

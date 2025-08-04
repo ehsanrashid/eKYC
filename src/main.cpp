@@ -8,14 +8,12 @@
 #include <thread>
 
 // Local Headers include
-#include "TimerLite.h"
 #include "eKYCEngine.h"
 #include "loggerwrapper.h"
 
 const int shard_id = 0;
 
 LoggerWrapper Log(1, "../logs/ekyc", 0);
-TimerLite timer;
 
 int main(int argc, char** argv) {
     Log.set_log_level(shard_id, LogLevel::DEBUG);
@@ -39,7 +37,6 @@ int main(int argc, char** argv) {
         if (inputThread.joinable()) inputThread.join();
 
         eKYC->stop();
-        timer.report();
         return 0;
     } catch (const std::exception& e) {
         Log.error_fast(shard_id, "Error: {}", e.what());

@@ -13,7 +13,6 @@
 namespace {
 
 void log_identity(messages::IdentityMessage &identity) {
-    timer.start("log_identity");
     Log.info_fast(shard_id, "msg: {}", identity.msg().getCharValAsString());
     Log.info_fast(shard_id, "type: {}", identity.type().getCharValAsString());
     Log.info_fast(shard_id, "id: {}", identity.id().getCharValAsString());
@@ -26,7 +25,6 @@ void log_identity(messages::IdentityMessage &identity) {
                   identity.address().getCharValAsString());
     Log.info_fast(shard_id, "verified: {}",
                   identity.verified().getCharValAsString());
-    timer.stop("log_identity");
 }
 
 }  // namespace
@@ -78,7 +76,6 @@ void eKYCEngine::stop() {
 // Check if user exists in database (with verification logging)
 bool eKYCEngine::user_exists(const std::string &identityNumber,
                              const std::string &name) {
-    timer.start("user_exists");
     if (!db_) {
         Log.error_fast(shard_id,
                        "Database connection not available for user check");
@@ -102,7 +99,6 @@ bool eKYCEngine::user_exists(const std::string &identityNumber,
                           identityNumber, name);
         }
 
-        timer.stop("user_exists");
         return exists;
     } catch (const pg_wrapper::DatabaseError &e) {
         Log.error_fast(shard_id,
@@ -114,7 +110,6 @@ bool eKYCEngine::user_exists(const std::string &identityNumber,
 
 // Add user to system
 bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
-    timer.start("add_identity");
     if (!db_) {
         Log.error_fast(shard_id,
                        "Database connection not available for adding user");
@@ -137,7 +132,6 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
         if (user_exists(identityNumber, name)) {
             Log.info_fast(shard_id, "User already exists in system: {} {} ({})",
                           name, identityNumber, type);
-            timer.stop("add_identity");
             return false;  // User already exists, don't add duplicate
         }
 
@@ -158,7 +152,6 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
 
         Log.info_fast(shard_id, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);
-        timer.stop("add_identity");
         return true;
 
     } catch (const pg_wrapper::DatabaseError &e) {
@@ -174,7 +167,6 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
 // Send response message
 void eKYCEngine::send_response(messages::IdentityMessage &originalIdentity,
                                bool verificationResult) {
-    timer.start("send_response");
     if (!publication_) {
         Log.error_fast(shard_id,
                        "Publication not available for sending response");
@@ -238,12 +230,10 @@ void eKYCEngine::send_response(messages::IdentityMessage &originalIdentity,
     } catch (const std::exception &e) {
         Log.error_fast(shard_id, "Error sending response: {}", e.what());
     }
-    timer.stop("send_response");
 }
 
 // Add verification method
 void eKYCEngine::verify_and_respond(messages::IdentityMessage &identity) {
-    timer.start("verify_and_respond");
     std::string msgType = identity.msg().getCharValAsString();
     bool isVerified = string_to_bool(identity.verified().getCharValAsString());
 
@@ -299,13 +289,11 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage &identity) {
         Log.info_fast(shard_id, "Message type '{}' - no action needed",
                       msgType);
     }
-    timer.stop("verify_and_respond");
 }
 
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData &fragmentData) {
     try {
-        timer.start("process_message");
         messages::MessageHeader msgHeader;
         msgHeader.wrap(reinterpret_cast<char *>(
                            const_cast<uint8_t *>(fragmentData.buffer)),
@@ -332,5 +320,4 @@ void eKYCEngine::process_message(
     } catch (const std::exception &e) {
         Log.error_fast(shard_id, "Error: {}", e.what());
     }
-    timer.stop("process_message");
 }

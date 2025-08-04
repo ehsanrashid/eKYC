@@ -4,14 +4,12 @@
 #include <memory>
 #include <string>
 
-#include "TimerLite.h"
 #include "aeron_wrapper.h"
 #include "loggerwrapper.h"
 #include "pg_wrapper.h"
 
 extern LoggerWrapper Log;
 extern const int shard_id;
-extern TimerLite timer;
 // Forward declaration
 namespace messages {
 class IdentityMessage;

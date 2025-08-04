@@ -28,7 +28,7 @@ eKYCEngine::eKYCEngine() noexcept
 
 eKYCEngine::~eKYCEngine() noexcept { stop(); }
 
-void eKYCEngine::start() {
+void eKYCEngine::start() noexcept {
     if (!running_) return;
 
     Log.info_fast(ShardId, "Starting eKYC engine...");
@@ -39,7 +39,7 @@ void eKYCEngine::start() {
         });
 }
 
-void eKYCEngine::stop() {
+void eKYCEngine::stop() noexcept {
     if (!running_) return;
 
     if (backgroundPoller_) {
@@ -51,7 +51,7 @@ void eKYCEngine::stop() {
 }
 
 void eKYCEngine::process_message(
-    const aeron_wrapper::FragmentData &fragmentData) {
+    const aeron_wrapper::FragmentData &fragmentData) noexcept {
     ++packetsReceived_;
     try {
         auto buffer = messageHandler_.respond(fragmentData);
@@ -63,7 +63,7 @@ void eKYCEngine::process_message(
     }
 }
 
-void eKYCEngine::send_response(std::vector<char> &buffer) {
+void eKYCEngine::send_response(std::vector<char> &buffer) noexcept {
     if (!publication_) return;
 
     auto result = publication_->offer(

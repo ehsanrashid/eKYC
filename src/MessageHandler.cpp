@@ -44,7 +44,7 @@ MessageHandler::~MessageHandler() noexcept {
 }
 
 std::vector<char> MessageHandler::respond(
-    const aeron_wrapper::FragmentData &fragmentData) {
+    const aeron_wrapper::FragmentData &fragmentData) noexcept {
     std::vector<char> buffer;
 
     messages::MessageHeader msgHeader;
@@ -132,7 +132,7 @@ std::vector<char> MessageHandler::respond(
 
 // Check if user exists in database
 bool MessageHandler::exist_user(const std::string &identityNumber,
-                                const std::string &name) {
+                                const std::string &name) noexcept {
     if (!db_) {
         Log.error_fast(ShardId,
                        "Database connection not available for user check");
@@ -166,7 +166,8 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 }
 
 // Add user to database
-bool MessageHandler::add_identity(messages::IdentityMessage &identity) {
+bool MessageHandler::add_identity(
+    messages::IdentityMessage &identity) noexcept {
     if (!db_) {
         Log.error_fast(ShardId,
                        "Database connection not available for adding user");
@@ -222,7 +223,8 @@ bool MessageHandler::add_identity(messages::IdentityMessage &identity) {
 
 // Send response message
 std::vector<char> MessageHandler::get_buffer(
-    messages::IdentityMessage &originalIdentity, bool verificationResult) {
+    messages::IdentityMessage &originalIdentity,
+    bool verificationResult) noexcept {
     std::vector<char> buffer;
     try {
         using namespace messages;

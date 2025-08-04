@@ -32,13 +32,14 @@ class eKYCEngine final {
 
     ~eKYCEngine() noexcept;
 
-    void start();
+    void start() noexcept;
 
-    void stop();
+    void stop() noexcept;
 
    private:
-    void process_message(const aeron_wrapper::FragmentData &fragmentData);
-    void send_response(std::vector<char> &buffer);
+    void process_message(
+        const aeron_wrapper::FragmentData &fragmentData) noexcept;
+    void send_response(std::vector<char> &buffer) noexcept;
 
     // Aeron components
     std::unique_ptr<aeron_wrapper::Aeron> aeron_;

@@ -5,11 +5,6 @@
 #include <iostream>
 #include <vector>
 
-#include "helper.h"
-#include "messages/Char64str.h"
-#include "messages/IdentityMessage.h"
-#include "messages/MessageHeader.h"
-
 eKYCEngine::eKYCEngine() noexcept
     : running_(false), packetsReceived_(0), messageHandler_() {
     try {

@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "aeron_wrapper.h"
 #include "loggerwrapper.h"

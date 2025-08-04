@@ -213,7 +213,7 @@ chmod +x install_dependencies.sh
 
 8. **Verify the build:**
    ```sh
-   ./eKYC --version  # Check if binary runs
+   ./eKYC            # Check if binary runs (no --version flag)
    ldd ./eKYC        # Check library dependencies
    ```
 
@@ -245,10 +245,12 @@ chmod +x install_dependencies.sh
 
 1. **Receive Message:** Engine receives SBE-encoded `IdentityMessage` on Aeron subscription channel
 2. **Decode Message:** Extracts identity information (name, ID, type, etc.)
-3. **Check Message Type:** Processes only "Identity Verification Request" messages with `verified=false`
-4. **Database Verification:** Queries PostgreSQL to verify identity against stored records
-5. **Log Results:** Logs verification success/failure
-6. **Response:** (TODO) Send back verification result message
+3. **Check Message Type:** Processes "Identity Verification Request" and "Add User in System" messages with `verified=false`
+4. **Database Operations:** 
+   - For verification requests: Queries PostgreSQL to verify identity against stored records
+   - For add user requests: Inserts new user records into the database
+5. **Log Results:** Logs verification/addition success/failure
+6. **Response:** Send back verification/addition result message via Aeron publication
 
 ### Sample Identity Message Fields:
 - `msg`: "Identity Verification Request"
@@ -273,7 +275,7 @@ chmod +x install_dependencies.sh
 
 - **Aeron Channels:**
   - Subscription: `aeron:udp?endpoint=0.0.0.0:50000`, Stream ID: `1001`
-  - Publication: `aeron:udp?endpoint=anas.eagri.com:40124`, Stream ID: `100`
+  - Publication: `aeron:udp?endpoint=anas.eagri.com:10001`, Stream ID: `1001`
 
 - **Log Files:**
   - Format: `Gateway_SBE_<timestamp>.log`
@@ -292,13 +294,16 @@ chmod +x install_dependencies.sh
 ├── include
 |   ├── eKYCEngine.h       # Engine class definition
 |   ├── helper.h           # Helper functions
-|    # Generated SBE message classes
-|   ├── IdentityMessage.h
-|   ├── MessageHeader.h
-|   └── Char64str.h
+|   ├── TimerLite.h        # Performance timing utilities
+|   ├── WorkStealingThreadpool.h  # Thread pool implementation
+|   └── messages/          # Generated SBE message classes
+|       ├── IdentityMessage.h
+|       ├── MessageHeader.h
+|       └── Char64str.h
 ├── src
 |   ├── eKYCEngine.cpp     # Engine class implementation
 |   ├── main.cpp           # Application entry point
+|   └── WorkStealingThreadpool.cpp  # Thread pool implementation
 └── build/
     └── logs/              # Log output directory
 ```
@@ -324,6 +329,8 @@ ANALYZE users;
 - **Prepared Statements:** Utilize prepared statements for repeated queries
 - **Caching:** Implement LRU cache for frequently verified identities
 - **Async Processing:** Leverage aeronWrapper's background polling for non-blocking operations
+- **Thread Pooling:** Use WorkStealingThreadpool for parallel message processing
+- **Performance Timing:** Use TimerLite for performance monitoring and optimization
 - **Logging:** Disable detailed logging in production (comment out Log statements)
 
 ### System-Level Optimizations
@@ -340,6 +347,7 @@ echo "effective_cache_size = 1GB" >> /etc/postgresql/*/main/postgresql.conf
 ### Expected Performance
 - **Without optimization:** ~25 requests/second (40s for 1000 requests)
 - **With database indexes:** ~100-200 requests/second (5-10s for 1000 requests)
+- **With thread pooling:** ~200-400 requests/second (2.5-5s for 1000 requests)
 - **With full optimization:** >500 requests/second (<2s for 1000 requests)
 
 ---
@@ -370,6 +378,8 @@ The eKYC Engine follows a modern, asynchronous architecture:
 - **aeronWrapper:** High-performance messaging with automatic retry and connection management
 - **pgWrapper:** Database operations with connection pooling and prepared statements
 - **loggerLib:** Thread-safe, high-performance logging with file rotation
+- **WorkStealingThreadpool:** Efficient parallel processing with work-stealing algorithm
+- **TimerLite:** Performance monitoring and timing utilities
 - **SBE Messages:** Zero-copy serialization for maximum throughput
 
 ---
@@ -380,10 +390,11 @@ The eKYC Engine follows a modern, asynchronous architecture:
 1. Update `login-schema.xml` with new message schema
 2. Regenerate SBE classes: `java -jar sbe-all-1.36.0-SNAPSHOT.jar login-schema.xml`
 3. Update message processing logic in `verify_and_respond()`
+4. Consider using WorkStealingThreadpool for parallel processing of new message types
 
 ### Database Schema Changes
 - Modify table structure as needed
-- Update SQL queries in `verify_identity()` method
+- Update SQL queries in `user_exists()` method
 - Test with sample data
 
 ---

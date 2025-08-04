@@ -5,11 +5,11 @@
 #include <string>
 
 #include "aeron_wrapper.h"
-#include "logger.h"
+#include "loggerwrapper.h"
 #include "pg_wrapper.h"
 
-extern Logger Log;
-
+extern LoggerWrapper Log;
+extern const int shard_id;
 // Forward declaration
 namespace messages {
 class IdentityMessage;
@@ -17,13 +17,15 @@ class IdentityMessage;
 
 class eKYCEngine {
    public:
-    static constexpr const char* AeronDir = "";
+    static constexpr const char *AeronDir = "";
 
-    static constexpr const char* SubscriptionChannel = "aeron:ipc";
+    static constexpr const char *SubscriptionChannel =
+        "aeron:udp?endpoint=0.0.0.0:50000";
     static constexpr int SubscriptionStreamId = 1001;
 
-    static constexpr const char* PublicationChannel = "aeron:ipc";
-    static constexpr int PublicationStreamId = 2001;
+    static constexpr const char *PublicationChannel =
+        "aeron:udp?endpoint=anas.eagri.com:10001";
+    static constexpr int PublicationStreamId = 1001;
 
     eKYCEngine();
 
@@ -34,14 +36,13 @@ class eKYCEngine {
     void stop();
 
    private:
-    void process_message(const aeron_wrapper::FragmentData& fragmentData);
-    void verify_and_respond(messages::IdentityMessage& identity);
-    void send_response(messages::IdentityMessage& originalIdentity,
+    void process_message(const aeron_wrapper::FragmentData &fragmentData);
+    void verify_and_respond(messages::IdentityMessage &identity);
+    void send_response(messages::IdentityMessage &originalIdentity,
                        bool verificationResult);
-    bool verify_identity(const std::string& name, const std::string& id);
-    bool user_exists(const std::string& identityNumber,
-                     const std::string& name);
-    bool add_identity(messages::IdentityMessage& identity);
+    bool user_exists(const std::string &identityNumber,
+                     const std::string &name);
+    bool add_identity(messages::IdentityMessage &identity);
 
     // Aeron components
     std::unique_ptr<aeron_wrapper::Aeron> aeron_;

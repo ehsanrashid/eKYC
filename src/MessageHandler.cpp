@@ -1,5 +1,6 @@
 #include "MessageHandler.h"
 
+#include <exception>
 #include <iostream>
 
 #include "helper.h"

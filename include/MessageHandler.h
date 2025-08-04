@@ -21,8 +21,7 @@ class MessageHandler final {
     MessageHandler() noexcept;
     ~MessageHandler() noexcept;
 
-    std::vector<char> handle_message(
-        const aeron_wrapper::FragmentData &fragmentData);
+    std::vector<char> respond(const aeron_wrapper::FragmentData &fragmentData);
 
     bool exist_user(const std::string &identityNumber, const std::string &name);
     bool add_identity(messages::IdentityMessage &identity);

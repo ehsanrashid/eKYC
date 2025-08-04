@@ -53,7 +53,7 @@ void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData &fragmentData) {
     ++packetsReceived_;
     try {
-        auto buffer = messageHandler_.handle_message(fragmentData);
+        auto buffer = messageHandler_.respond(fragmentData);
         send_response(buffer);
     } catch (const std::exception &e) {
         Log.error_fast(ShardId, "Error: {}", e.what());

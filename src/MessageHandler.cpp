@@ -43,7 +43,7 @@ MessageHandler::~MessageHandler() noexcept {
     }
 }
 
-std::vector<char> MessageHandler::handle_message(
+std::vector<char> MessageHandler::respond(
     const aeron_wrapper::FragmentData &fragmentData) {
     std::vector<char> buffer;
 

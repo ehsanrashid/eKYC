@@ -29,9 +29,9 @@ class eKYCEngine final {
         "aeron:udp?endpoint=anas.eagri.com:10001";
     static constexpr int PublicationStreamId = 1001;
 
-    eKYCEngine();
+    eKYCEngine() noexcept;
 
-    ~eKYCEngine();
+    ~eKYCEngine() noexcept;
 
     void start();
 

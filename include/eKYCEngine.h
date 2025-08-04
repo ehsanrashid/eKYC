@@ -8,7 +8,6 @@
 #include "MessageHandler.h"
 #include "aeron_wrapper.h"
 #include "loggerwrapper.h"
-#include "pg_wrapper.h"
 
 extern const int ShardId;
 extern LoggerWrapper Log;
@@ -49,7 +48,7 @@ class eKYCEngine final {
         backgroundPoller_;
 
     std::atomic<bool> running_;
-    long int packetsReceived_ = 0;
+    std::uint64_t packetsReceived_;
 
     MessageHandler messageHandler_;
 };

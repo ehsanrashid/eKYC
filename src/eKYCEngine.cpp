@@ -10,7 +10,8 @@
 #include "messages/IdentityMessage.h"
 #include "messages/MessageHeader.h"
 
-eKYCEngine::eKYCEngine() noexcept : running_(false), messageHandler_() {
+eKYCEngine::eKYCEngine() noexcept
+    : running_(false), packetsReceived_(0), messageHandler_() {
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info_fast(ShardId, "Connected to Aeron Media Driver...");

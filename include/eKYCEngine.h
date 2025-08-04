@@ -38,6 +38,7 @@ class eKYCEngine final {
 
    private:
     void process_message(const aeron_wrapper::FragmentData &fragmentData);
+    void send_response(std::vector<char> &buffer);
 
     bool exist_user(const std::string &identityNumber, const std::string &name);
     bool add_identity(messages::IdentityMessage &identity);
@@ -54,6 +55,6 @@ class eKYCEngine final {
 
     std::atomic<bool> running_;
     long int packetsReceived_ = 0;
-    
+
     std::unique_ptr<pg_wrapper::Database> db_;
 };

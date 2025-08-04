@@ -52,6 +52,7 @@ eKYCEngine::~eKYCEngine() { stop(); }
 
 void eKYCEngine::start() {
     if (!running_) return;
+
     Log.info_fast(ShardId, "Starting eKYC engine...");
     // Start background msg processing
     backgroundPoller_ = subscription_->start_background_polling(
@@ -62,6 +63,7 @@ void eKYCEngine::start() {
 
 void eKYCEngine::stop() {
     if (!running_) return;
+
     if (backgroundPoller_) {
         backgroundPoller_->stop();
     }
@@ -124,9 +126,8 @@ bool eKYCEngine::add_identity(messages::IdentityMessage &identity) {
         std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
         std::string address = identity.address().getCharValAsString();
 
-        Log.info_fast(ShardId,
-                      "Adding user to system: name={}, id={}, type={}", name,
-                      identityNumber, type);
+        Log.info_fast(ShardId, "Adding user to system: name={}, id={}, type={}",
+                      name, identityNumber, type);
 
         // Check if user already exists using the reusable method
         if (exist_user(identityNumber, name)) {
@@ -218,8 +219,7 @@ void eKYCEngine::verify_and_respond(messages::IdentityMessage &identity) {
         Log.info_fast(ShardId, "Identity already verified: {}",
                       identity.name().getCharValAsString());
     } else {
-        Log.info_fast(ShardId, "Message type '{}' - no action needed",
-                      msgType);
+        Log.info_fast(ShardId, "Message type '{}' - no action needed", msgType);
     }
 }
 
@@ -268,24 +268,7 @@ void eKYCEngine::send_response(messages::IdentityMessage &originalIdentity,
         identity.verified().putCharVal(verificationResult ? "true" : "false");
 
         // Send the response
-        if (publication_->is_connected()) {
-            auto result = publication_->offer(
-                reinterpret_cast<const uint8_t *>(sbeBuffer.data()),
-                bufferCapacity);
-            if (result == aeron_wrapper::PublicationResult::SUCCESS) {
-                Log.info_fast(ShardId,
-                              "Response sent successfully: {} for {} {}",
-                              verificationResult ? "VERIFIED" : "NOT VERIFIED",
-                              originalIdentity.name().getCharValAsString(),
-                              originalIdentity.id().getCharValAsString());
-            } else {
-                Log.error_fast(ShardId, "Failed to send response: {}",
-                               static_cast<int>(result));
-            }
-        } else {
-            Log.error_fast(ShardId,
-                           "Publication not connected, cannot send response");
-        }
+        send_response(sbeBuffer);
     } catch (const std::exception &e) {
         Log.error_fast(ShardId, "Error sending response: {}", e.what());
     }
@@ -320,5 +303,18 @@ void eKYCEngine::process_message(
 
     } catch (const std::exception &e) {
         Log.error_fast(ShardId, "Error: {}", e.what());
+    }
+}
+
+void eKYCEngine::send_response(std::vector<char> &buffer) {
+    if (!publication_) return;
+
+    auto result = publication_->offer(
+        reinterpret_cast<const uint8_t *>(buffer.data()), buffer.size());
+    if (result == aeron_wrapper::PublicationResult::SUCCESS) {
+        Log.info_fast(ShardId, "Response sent successfully");
+    } else {
+        Log.error_fast(ShardId, "Failed to send response: {}",
+                       static_cast<int>(result));
     }
 }

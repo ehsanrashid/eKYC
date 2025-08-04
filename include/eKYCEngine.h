@@ -22,11 +22,11 @@ class eKYCEngine final {
     static constexpr const char *AeronDir = "";
 
     static constexpr const char *SubscriptionChannel =
-        "aeron:udp?endpoint=0.0.0.0:50000";
+        "aeron:ipc?endpoint=0.0.0.0:50000";
     static constexpr int SubscriptionStreamId = 1001;
 
     static constexpr const char *PublicationChannel =
-        "aeron:udp?endpoint=anas.eagri.com:10001";
+        "aeron:ipc?endpoint=anas.eagri.com:10001";
     static constexpr int PublicationStreamId = 1001;
 
     eKYCEngine() noexcept;

@@ -54,7 +54,9 @@ void eKYCEngine::process_message(
     ++packetsReceived_;
     try {
         auto buffer = messageHandler_.respond(fragmentData);
-        send_response(buffer);
+        if (!buffer.empty()) {
+            send_response(buffer);
+        }
     } catch (const std::exception &e) {
         Log.error_fast(ShardId, "Error: {}", e.what());
     }

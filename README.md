@@ -294,8 +294,6 @@ chmod +x install_dependencies.sh
 ├── include
 |   ├── eKYCEngine.h       # Engine class definition
 |   ├── helper.h           # Helper functions
-|   ├── TimerLite.h        # Performance timing utilities
-|   ├── WorkStealingThreadpool.h  # Thread pool implementation
 |   └── messages/          # Generated SBE message classes
 |       ├── IdentityMessage.h
 |       ├── MessageHeader.h
@@ -303,7 +301,6 @@ chmod +x install_dependencies.sh
 ├── src
 |   ├── eKYCEngine.cpp     # Engine class implementation
 |   ├── main.cpp           # Application entry point
-|   └── WorkStealingThreadpool.cpp  # Thread pool implementation
 └── build/
     └── logs/              # Log output directory
 ```
@@ -329,8 +326,6 @@ ANALYZE users;
 - **Prepared Statements:** Utilize prepared statements for repeated queries
 - **Caching:** Implement LRU cache for frequently verified identities
 - **Async Processing:** Leverage aeronWrapper's background polling for non-blocking operations
-- **Thread Pooling:** Use WorkStealingThreadpool for parallel message processing
-- **Performance Timing:** Use TimerLite for performance monitoring and optimization
 - **Logging:** Disable detailed logging in production (comment out Log statements)
 
 ### System-Level Optimizations
@@ -347,7 +342,6 @@ echo "effective_cache_size = 1GB" >> /etc/postgresql/*/main/postgresql.conf
 ### Expected Performance
 - **Without optimization:** ~25 requests/second (40s for 1000 requests)
 - **With database indexes:** ~100-200 requests/second (5-10s for 1000 requests)
-- **With thread pooling:** ~200-400 requests/second (2.5-5s for 1000 requests)
 - **With full optimization:** >500 requests/second (<2s for 1000 requests)
 
 ---
@@ -378,8 +372,6 @@ The eKYC Engine follows a modern, asynchronous architecture:
 - **aeronWrapper:** High-performance messaging with automatic retry and connection management
 - **pgWrapper:** Database operations with connection pooling and prepared statements
 - **loggerLib:** Thread-safe, high-performance logging with file rotation
-- **WorkStealingThreadpool:** Efficient parallel processing with work-stealing algorithm
-- **TimerLite:** Performance monitoring and timing utilities
 - **SBE Messages:** Zero-copy serialization for maximum throughput
 
 ---
@@ -390,7 +382,6 @@ The eKYC Engine follows a modern, asynchronous architecture:
 1. Update `login-schema.xml` with new message schema
 2. Regenerate SBE classes: `java -jar sbe-all-1.36.0-SNAPSHOT.jar login-schema.xml`
 3. Update message processing logic in `verify_and_respond()`
-4. Consider using WorkStealingThreadpool for parallel processing of new message types
 
 ### Database Schema Changes
 - Modify table structure as needed

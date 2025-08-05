@@ -3,6 +3,7 @@
 #include <exception>
 #include <iostream>
 
+#include "config.h"
 #include "helper.h"
 #include "messages/Char64str.h"
 #include "messages/IdentityMessage.h"
@@ -30,7 +31,8 @@ void log_identity(messages::IdentityMessage &identity) {
 MessageHandler::MessageHandler() noexcept {
     try {
         db_ = std::make_unique<pg_wrapper::Database>(
-            "localhost", "5432", "ekycdb", "huzaifa", "3214");
+            config::DB_HOST, config::DB_PORT, config::DB_NAME, config::DB_USER,
+            config::DB_PASSWORD);
         Log.info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
         Log.info_fast(ShardId, "Error: {}", e.what());

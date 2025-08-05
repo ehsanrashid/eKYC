@@ -8,6 +8,7 @@
 
 #include "MessageHandler.h"
 #include "aeron_wrapper.h"
+#include "config.h"
 #include "loggerwrapper.h"
 
 extern const int ShardId;
@@ -17,13 +18,21 @@ class eKYCEngine final {
    public:
     static constexpr const char *AeronDir = "";
 
-    static constexpr const char *SubscriptionChannel =
-        "aeron:ipc?endpoint=0.0.0.0:50000";
-    static constexpr int SubscriptionStreamId = 1001;
+    static std::string getSubscriptionChannel() {
+        return std::string("aeron:") + config::AERON_PROTOCOL +
+               "?endpoint=" + config::SUBSCRIPTION_IP + ":" +
+               config::SUBSCRIPTION_PORT_STR;
+    }
 
-    static constexpr const char *PublicationChannel =
-        "aeron:ipc?endpoint=anas.eagri.com:10001";
-    static constexpr int PublicationStreamId = 1001;
+    static std::string getPublicationChannel() {
+        return std::string("aeron:") + config::AERON_PROTOCOL +
+               "?endpoint=" + config::PUBLICATION_IP + ":" +
+               config::PUBLICATION_PORT_STR;
+    }
+
+    // Stream IDs from config
+    static constexpr int SubscriptionStreamId = config::SUBSCRIPTION_STREAM_ID;
+    static constexpr int PublicationStreamId = config::PUBLICATION_STREAM_ID;
 
     eKYCEngine() noexcept;
 

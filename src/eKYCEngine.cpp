@@ -8,9 +8,10 @@ eKYCEngine::eKYCEngine() noexcept
     try {
         aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info_fast(ShardId, "Connected to Aeron Media Driver...");
-        subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
+
+        subscription_ = aeron_->create_subscription(getSubscriptionChannel(),
                                                     SubscriptionStreamId);
-        publication_ = aeron_->create_publication(PublicationChannel,  //
+        publication_ = aeron_->create_publication(getPublicationChannel(),
                                                   PublicationStreamId);
 
         running_ = true;

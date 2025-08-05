@@ -14,7 +14,7 @@
 
 const int ShardId = config::MAIN_THREAD_SHARD_ID;
 
-LoggerWrapper Log(config::NUM_SHARDS, "../logs/ekyc",
+LoggerWrapper Log(config::NUM_SHARDS, config::LOG_DIR,
                   config::ROTATIING_LOG_SIZE);
 
 int main(int argc, char** argv) {

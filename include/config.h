@@ -3,11 +3,14 @@
 #include <string>
 
 namespace config {
+// Logging configuration
+constexpr const char* LOG_DIR = "../logs/ekyc";
+constexpr int ROTATIING_LOG_SIZE = 0;
+
 // Sharding configuration
 constexpr int MAIN_THREAD_SHARD_ID = 0;
 constexpr uint8_t NUM_SHARDS = 1;
 constexpr int MAX_RING_BUFFER_SIZE = 4096;
-constexpr int ROTATIING_LOG_SIZE = 0;
 
 // Aeron configuration
 constexpr const char* AERON_PROTOCOL = "ipc";

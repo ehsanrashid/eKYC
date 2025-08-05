@@ -4,7 +4,8 @@
 
 namespace config {
 // Sharding configuration
-constexpr uint8_t NUM_SHARDS = 4;
+constexpr int MAIN_THREAD_SHARD_ID = 0;
+constexpr uint8_t NUM_SHARDS = 1;
 constexpr int MAX_RING_BUFFER_SIZE = 4096;
 
 // Aeron configuration

@@ -26,7 +26,7 @@ class Messaging {
     void shutdown();
 
     /// Send an IdentityMessage response via Aeron Publication
-    bool sendResponse(const messages::IdentityMessage& identity);
+    bool sendResponse(messages::IdentityMessage& identity);
 
     /// Get access to the sharded queue array
     std::array<ShardedQueue, config::NUM_SHARDS>& getQueue();
@@ -47,5 +47,5 @@ class Messaging {
     std::array<ShardedQueue, config::NUM_SHARDS> sharded_queue;
 
     // Shard counter for round-robin distribution
-    uint32_t _shard_counter = 0;
+    std::atomic<uint32_t> _shard_counter{0};
 };

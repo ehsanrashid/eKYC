@@ -4,10 +4,11 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "MessageHandler.h"
-#include "aeron_wrapper.h"
+#include "Messaging.h"
 #include "config.h"
 #include "loggerwrapper.h"
 
@@ -16,24 +17,6 @@ extern LoggerWrapper Log;
 
 class eKYCEngine final {
    public:
-    static constexpr const char *AeronDir = "";
-
-    static std::string getSubscriptionChannel() {
-        return std::string("aeron:") + config::AERON_PROTOCOL +
-               "?endpoint=" + config::SUBSCRIPTION_IP + ":" +
-               config::SUBSCRIPTION_PORT_STR;
-    }
-
-    static std::string getPublicationChannel() {
-        return std::string("aeron:") + config::AERON_PROTOCOL +
-               "?endpoint=" + config::PUBLICATION_IP + ":" +
-               config::PUBLICATION_PORT_STR;
-    }
-
-    // Stream IDs from config
-    static constexpr int SubscriptionStreamId = config::SUBSCRIPTION_STREAM_ID;
-    static constexpr int PublicationStreamId = config::PUBLICATION_STREAM_ID;
-
     eKYCEngine() noexcept;
 
     ~eKYCEngine() noexcept;
@@ -42,20 +25,34 @@ class eKYCEngine final {
 
     void stop() noexcept;
 
-   private:
-    void process_message(
-        const aeron_wrapper::FragmentData &fragmentData) noexcept;
-    void send_response(std::vector<char> &buffer) noexcept;
+    // Monitoring methods
+    std::uint64_t getPacketsReceived() const noexcept {
+        return packetsReceived_.load();
+    }
+    std::uint64_t getErrorCount() const noexcept { return errorCount_.load(); }
+    std::uint64_t getConsecutiveErrors() const noexcept {
+        return consecutiveErrors_.load();
+    }
 
-    // Aeron components
-    std::unique_ptr<aeron_wrapper::Aeron> aeron_;
-    std::unique_ptr<aeron_wrapper::Subscription> subscription_;
-    std::unique_ptr<aeron_wrapper::Publication> publication_;
-    std::unique_ptr<aeron_wrapper::Subscription::BackgroundPoller>
-        backgroundPoller_;
+   private:
+    void process_shard_messages(uint8_t shardId) noexcept;
+    void process_identity_message(messages::IdentityMessage& identity,
+                                  uint8_t shardId) noexcept;
+    messages::IdentityMessage create_response_message(
+        messages::IdentityMessage& original, bool verified,
+        uint8_t shardId) noexcept;
 
     std::atomic<bool> running_;
-    std::uint64_t packetsReceived_;
+    std::atomic<std::uint64_t> packetsReceived_;
+    std::atomic<std::uint64_t> errorCount_;
+    std::atomic<std::uint64_t> consecutiveErrors_;
 
+    // Messaging component for Aeron handling
+    std::unique_ptr<Messaging> messaging_;
+
+    // Message handler for business logic
     MessageHandler messageHandler_;
+
+    // Processing threads for sharded queues (one per shard)
+    std::vector<std::thread> processingThreads_;
 };

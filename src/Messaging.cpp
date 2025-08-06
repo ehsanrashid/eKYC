@@ -1,4 +1,4 @@
-#include "messaging.h"
+#include "Messaging.h"
 
 #include <chrono>
 #include <iostream>
@@ -51,12 +51,77 @@ void Messaging::listenerLoop() {
                     Log.info_fast(ShardId,
                                   "-----Got New Identity Message-----");
 
-                    // Round-robin shard selection
-                    uint8_t shardId = (++_shard_counter) % config::NUM_SHARDS;
+                    // Smart shard selection for SBE-encoded messages
+                    uint8_t shardId;
+
+                    try {
+                        // Decode the SBE message to extract the ID for sharding
+                        messages::MessageHeader msgHeader;
+                        msgHeader.wrap(
+                            reinterpret_cast<char*>(
+                                const_cast<uint8_t*>(fragmentData.buffer)),
+                            0, 0, fragmentData.length);
+
+                        Log.info_fast(
+                            ShardId, "Fragment length: {}, Template ID: {}",
+                            fragmentData.length, msgHeader.templateId());
+
+                        if (msgHeader.templateId() ==
+                            messages::IdentityMessage::sbeTemplateId()) {
+                            // Calculate offset for message body
+                            size_t offset = msgHeader.encodedLength();
+
+                            // Decode the identity message to get the ID
+                            messages::IdentityMessage identity;
+                            identity.wrapForDecode(
+                                reinterpret_cast<char*>(
+                                    const_cast<uint8_t*>(fragmentData.buffer)),
+                                offset, msgHeader.blockLength(),
+                                msgHeader.version(), fragmentData.length);
+
+                            // Extract ID for sharding
+                            std::string idValue =
+                                identity.id().getCharValAsString();
+
+                            // Add message counter to ensure distribution even
+                            // with identical IDs
+                            static std::atomic<uint32_t> message_counter{0};
+                            uint32_t counter = message_counter.fetch_add(1);
+
+                            // Combine ID with counter for better distribution
+                            std::string combined_key =
+                                idValue + "_" + std::to_string(counter);
+                            std::hash<std::string> hasher;
+                            shardId = hasher(combined_key) % config::NUM_SHARDS;
+
+                            Log.info_fast(ShardId,
+                                          "Decoded SBE message - ID: {}, "
+                                          "Counter: {}, Shard: {}",
+                                          idValue, counter, shardId);
+                        } else {
+                            // Fallback to round-robin for non-identity messages
+                            shardId = (_shard_counter.fetch_add(1) + 1) %
+                                      config::NUM_SHARDS;
+                        }
+                    } catch (const std::exception& e) {
+                        // Fallback to round-robin if decoding fails
+                        shardId = (_shard_counter.fetch_add(1) + 1) %
+                                  config::NUM_SHARDS;
+                        Log.error_fast(
+                            ShardId,
+                            "Error decoding SBE message for sharding: {}",
+                            e.what());
+                        Log.info_fast(ShardId, "Using fallback shard: {}",
+                                      shardId);
+                    }
+
                     Log.info_fast(ShardId, "Enqueued to shard: {}", shardId);
 
                     // Enqueue to the selected shard
-                    sharded_queue[shardId].enqueue(fragmentData.buffer, 0,
+                    aeron::concurrent::AtomicBuffer atomicBuffer(
+                        const_cast<uint8_t*>(fragmentData.buffer),
+                        fragmentData.length);
+                    sharded_queue[shardId].enqueue(atomicBuffer, 0,
                                                    fragmentData.length);
                 },
                 10);  // Poll up to 10 fragments
@@ -73,7 +138,7 @@ void Messaging::listenerLoop() {
     Log.info_fast(ShardId, "Listener thread exiting");
 }
 
-bool Messaging::sendResponse(const messages::IdentityMessage& identity) {
+bool Messaging::sendResponse(messages::IdentityMessage& identity) {
     try {
         // Create buffer for the response
         std::vector<char> buffer;
@@ -97,7 +162,8 @@ bool Messaging::sendResponse(const messages::IdentityMessage& identity) {
         messages::IdentityMessage responseIdentity;
         responseIdentity.wrapForEncode(buffer.data(), offset, bufferCapacity);
 
-        // Copy the identity data
+        // Copy the identity data (this method now expects a properly formatted
+        // response message)
         responseIdentity.msg().putCharVal(identity.msg().getCharValAsString());
         responseIdentity.type().putCharVal(
             identity.type().getCharValAsString());

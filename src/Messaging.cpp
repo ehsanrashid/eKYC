@@ -2,137 +2,88 @@
 
 #include <chrono>
 #include <iostream>
+#include <vector>
 
+#include "messages/IdentityMessage.h"
 #include "messages/MessageHeader.h"
 
-Messaging::Messaging() {}
+extern const int ShardId;
+extern LoggerWrapper Log;
+
+static constexpr const char* CHANNEL_IN = "aeron:udp?endpoint=localhost:20121";
+static constexpr const char* CHANNEL_OUT = "aeron:udp?endpoint=localhost:20121";
+static constexpr const char* CHANNEL_IPC = "aeron:ipc";
+static constexpr std::int32_t STREAM_ID_IN = 1001;
+static constexpr std::int32_t STREAM_ID_OUT = 2001;
+static constexpr std::chrono::duration<long, std::milli> SLEEP_IDLE_MS(1);
+
+Messaging::Messaging() = default;
 
 Messaging::~Messaging() { shutdown(); }
 
 bool Messaging::initialize() {
     try {
-        // Initialize Aeron
-        aeron_ = std::make_unique<aeron_wrapper::Aeron>("");
-        Log.info_fast(ShardId, "Connected to Aeron Media Driver...");
+        aeron::Context context;
+        aeron_ = aeron::Aeron::connect(context);
 
-        // Create subscription
-        subscription_ = aeron_->create_subscription(
-            "aeron:" + std::string(config::AERON_PROTOCOL) + "?endpoint=" +
-                config::SUBSCRIPTION_IP + ":" + config::SUBSCRIPTION_PORT_STR,
-            config::SUBSCRIPTION_STREAM_ID);
+        // Create subscription for incoming messages
+        std::int64_t id = aeron_->addSubscription(CHANNEL_IPC, STREAM_ID_IN);
+        subscription_ = aeron_->findSubscription(id);
+        while (!subscription_) {
+            std::this_thread::yield();
+            subscription_ = aeron_->findSubscription(id);
+        }
+        Log.info_fast(ShardId, "Subscribed. Sub Id: {}", id);
 
-        // Create publication
-        publication_ = aeron_->create_publication(
-            "aeron:" + std::string(config::AERON_PROTOCOL) + "?endpoint=" +
-                config::PUBLICATION_IP + ":" + config::PUBLICATION_PORT_STR,
-            config::PUBLICATION_STREAM_ID);
+        // Create publication for outgoing messages
+        id = aeron_->addPublication(CHANNEL_IPC, STREAM_ID_OUT);
+        publication_ = aeron_->findPublication(id);
+        while (!publication_) {
+            std::this_thread::yield();
+            publication_ = aeron_->findPublication(id);
+        }
+        Log.info_fast(ShardId, "Published. Pub Id: {}", id);
 
-        Log.info_fast(ShardId, "Aeron initialized successfully");
-
-        running_ = true;
-        listenerThread_ = std::thread(&Messaging::listenerLoop, this);
-        Log.info_fast(ShardId, "Listener thread started");
-
-        return true;
     } catch (const std::exception& e) {
         Log.error_fast(ShardId, "Aeron initialization failed: {}", e.what());
         return false;
     }
+
+    running_ = true;
+    listenerThread_ = std::thread(&Messaging::listenerLoop, this);
+    Log.info_fast(ShardId, "Aeron initialized and listener thread started");
+    return true;
+}
+
+aeron::fragment_handler_t Messaging::fragHandler() {
+    return [&](const aeron::AtomicBuffer& buffer, std::int32_t offset,
+               std::int32_t length, const aeron::Header& header) {
+        if (length < sizeof(std::uint8_t)) {
+            return;  // too small to read any header
+        }
+        Log.info_fast(ShardId, "-----Got New Identity Message-----");
+
+        // Simple round-robin sharding like eLoan
+        uint8_t shardId = (_shard_counter.fetch_add(1)) % config::NUM_SHARDS;
+        Log.info_fast(ShardId, "Round robin assigned shard: {}", shardId);
+
+        // Enqueue to the selected shard
+        aeron::concurrent::AtomicBuffer atomicBuffer(
+            const_cast<uint8_t*>(buffer.buffer()), buffer.capacity());
+        sharded_queue[shardId].enqueue(atomicBuffer, offset, length);
+    };
 }
 
 void Messaging::listenerLoop() {
     Log.info_fast(ShardId, "Listener loop started");
+    aeron::FragmentAssembler fragmentAssembler(fragHandler());
+    aeron::fragment_handler_t handler = fragmentAssembler.handler();
+    aeron::SleepingIdleStrategy sleepStrategy(SLEEP_IDLE_MS);
 
     while (running_) {
-        try {
-            // Poll for fragments
-            subscription_->poll(
-                [this](const aeron_wrapper::FragmentData& fragmentData) {
-                    Log.info_fast(ShardId,
-                                  "-----Got New Identity Message-----");
-
-                    // Smart shard selection for SBE-encoded messages
-                    uint8_t shardId;
-
-                    try {
-                        // Decode the SBE message to extract the ID for sharding
-                        messages::MessageHeader msgHeader;
-                        msgHeader.wrap(
-                            reinterpret_cast<char*>(
-                                const_cast<uint8_t*>(fragmentData.buffer)),
-                            0, 0, fragmentData.length);
-
-                        Log.info_fast(
-                            ShardId, "Fragment length: {}, Template ID: {}",
-                            fragmentData.length, msgHeader.templateId());
-
-                        if (msgHeader.templateId() ==
-                            messages::IdentityMessage::sbeTemplateId()) {
-                            // Calculate offset for message body
-                            size_t offset = msgHeader.encodedLength();
-
-                            // Decode the identity message to get the ID
-                            messages::IdentityMessage identity;
-                            identity.wrapForDecode(
-                                reinterpret_cast<char*>(
-                                    const_cast<uint8_t*>(fragmentData.buffer)),
-                                offset, msgHeader.blockLength(),
-                                msgHeader.version(), fragmentData.length);
-
-                            // Extract ID for sharding
-                            std::string idValue =
-                                identity.id().getCharValAsString();
-
-                            // Add message counter to ensure distribution even
-                            // with identical IDs
-                            static std::atomic<uint32_t> message_counter{0};
-                            uint32_t counter = message_counter.fetch_add(1);
-
-                            // Combine ID with counter for better distribution
-                            std::string combined_key =
-                                idValue + "_" + std::to_string(counter);
-                            std::hash<std::string> hasher;
-                            shardId = hasher(combined_key) % config::NUM_SHARDS;
-
-                            Log.info_fast(ShardId,
-                                          "Decoded SBE message - ID: {}, "
-                                          "Counter: {}, Shard: {}",
-                                          idValue, counter, shardId);
-                        } else {
-                            // Fallback to round-robin for non-identity messages
-                            shardId = (_shard_counter.fetch_add(1) + 1) %
-                                      config::NUM_SHARDS;
-                        }
-                    } catch (const std::exception& e) {
-                        // Fallback to round-robin if decoding fails
-                        shardId = (_shard_counter.fetch_add(1) + 1) %
-                                  config::NUM_SHARDS;
-                        Log.error_fast(
-                            ShardId,
-                            "Error decoding SBE message for sharding: {}",
-                            e.what());
-                        Log.info_fast(ShardId, "Using fallback shard: {}",
-                                      shardId);
-                    }
-
-                    Log.info_fast(ShardId, "Enqueued to shard: {}", shardId);
-
-                    // Enqueue to the selected shard
-                    aeron::concurrent::AtomicBuffer atomicBuffer(
-                        const_cast<uint8_t*>(fragmentData.buffer),
-                        fragmentData.length);
-                    sharded_queue[shardId].enqueue(atomicBuffer, 0,
-                                                   fragmentData.length);
-                },
-                10);  // Poll up to 10 fragments
-
-            // If no fragments, yield CPU
-            if (running_) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-        } catch (const std::exception& e) {
-            Log.error_fast(ShardId, "Error in listener loop: {}", e.what());
-        }
+        // Poll up to 10 fragments per iteration
+        std::int32_t fragmentsRead = subscription_->poll(handler, 10);
+        sleepStrategy.idle(fragmentsRead);
     }
 
     Log.info_fast(ShardId, "Listener thread exiting");
@@ -140,55 +91,49 @@ void Messaging::listenerLoop() {
 
 bool Messaging::sendResponse(messages::IdentityMessage& identity) {
     try {
-        // Create buffer for the response
-        std::vector<char> buffer;
-        const size_t bufferCapacity =
+        // Send a simple hardcoded response like eLoan does
+        std::vector<uint8_t> raw_buffer(
             messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength();
-        buffer.resize(bufferCapacity);
+            messages::IdentityMessage::sbeBlockLength() + 64 + 64 + 64 + 64 +
+            64 + 64 + 64 + 64);  // Max string lengths
 
-        size_t offset = 0;
+        aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
+                                                      raw_buffer.size());
 
-        // Encode header
-        messages::MessageHeader msgHeader;
-        msgHeader.wrap(buffer.data(), offset, 0, bufferCapacity);
-        msgHeader.blockLength(messages::IdentityMessage::sbeBlockLength());
-        msgHeader.templateId(messages::IdentityMessage::sbeTemplateId());
-        msgHeader.schemaId(messages::IdentityMessage::sbeSchemaId());
-        msgHeader.version(messages::IdentityMessage::sbeSchemaVersion());
-        offset += msgHeader.encodedLength();
+        messages::MessageHeader header_encoder;
+        header_encoder
+            .wrap(reinterpret_cast<char*>(raw_buffer.data()), 0, 0,
+                  raw_buffer.size())
+            .blockLength(messages::IdentityMessage::sbeBlockLength())
+            .templateId(messages::IdentityMessage::sbeTemplateId())
+            .schemaId(messages::IdentityMessage::sbeSchemaId())
+            .version(messages::IdentityMessage::sbeSchemaVersion());
 
-        // Encode identity message
-        messages::IdentityMessage responseIdentity;
-        responseIdentity.wrapForEncode(buffer.data(), offset, bufferCapacity);
+        messages::IdentityMessage response_encoder;
+        response_encoder.wrapForEncode(
+            reinterpret_cast<char*>(raw_buffer.data()),
+            messages::MessageHeader::encodedLength(), raw_buffer.size());
 
-        // Copy the identity data (this method now expects a properly formatted
-        // response message)
-        responseIdentity.msg().putCharVal(identity.msg().getCharValAsString());
-        responseIdentity.type().putCharVal(
-            identity.type().getCharValAsString());
-        responseIdentity.id().putCharVal(identity.id().getCharValAsString());
-        responseIdentity.name().putCharVal(
-            identity.name().getCharValAsString());
-        responseIdentity.dateOfIssue().putCharVal(
-            identity.dateOfIssue().getCharValAsString());
-        responseIdentity.dateOfExpiry().putCharVal(
-            identity.dateOfExpiry().getCharValAsString());
-        responseIdentity.address().putCharVal(
-            identity.address().getCharValAsString());
-        responseIdentity.verified().putCharVal(
-            identity.verified().getCharValAsString());
+        // Set hardcoded response data
+        response_encoder.msg().putCharVal("Identity Verification Response");
+        response_encoder.type().putCharVal("cnic");
+        response_encoder.id().putCharVal("4210109729681");
+        response_encoder.name().putCharVal("Huzaifa Ahmed");
+        response_encoder.dateOfIssue().putCharVal("2020-01-01");
+        response_encoder.dateOfExpiry().putCharVal("2025-01-01");
+        response_encoder.address().putCharVal(
+            "Khurram Heights, Block 2, Gulshan-e-Iqbal, Karachi");
+        response_encoder.verified().putCharVal("true");
 
-        // Send via Aeron
-        auto result = publication_->offer(
-            reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
+        std::int64_t result = publication_->offer(
+            atomic_buffer, 0,
+            header_encoder.encodedLength() + response_encoder.encodedLength());
 
-        if (result == aeron_wrapper::PublicationResult::SUCCESS) {
+        if (result > 0) {
             Log.info_fast(ShardId, "Response sent successfully");
             return true;
         } else {
-            Log.error_fast(ShardId, "Failed to send response: {}",
-                           static_cast<int>(result));
+            Log.error_fast(ShardId, "Failed to send response: {}", result);
             return false;
         }
     } catch (const std::exception& e) {
@@ -205,7 +150,6 @@ void Messaging::shutdown() {
     if (!running_) return;
 
     running_ = false;
-
     if (listenerThread_.joinable()) {
         listenerThread_.join();
     }

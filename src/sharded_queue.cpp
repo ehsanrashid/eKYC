@@ -34,39 +34,46 @@ void ShardedQueue::enqueue(aeron::concurrent::AtomicBuffer buffer,
     }
 }
 
-std::optional<messages::IdentityMessage> ShardedQueue::dequeue() {
-    std::optional<messages::IdentityMessage> result;
+std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
+    std::optional<std::variant<IdentityData>> result;
     _ring_buffer.read([&](int8_t msgType,
                           aeron::concurrent::AtomicBuffer &buffer,
                           int32_t offset, int32_t length) {
         try {
-            // The buffer contains raw message data, we need to decode it
-            // properly
+            // SBE decoding exactly like eLoan
             messages::MessageHeader msgHeader;
             messages::IdentityMessage identity;
 
-            // Wrap the header at the beginning of the buffer
             msgHeader.wrap(reinterpret_cast<char *>(buffer.buffer()), offset, 0,
-                           offset + length);
+                           buffer.capacity());
+            offset += msgHeader.encodedLength();  // usually 8 bytes
 
-            // Check if this is an IdentityMessage
             if (msgHeader.templateId() ==
                 messages::IdentityMessage::sbeTemplateId()) {
-                // Calculate the offset for the message body
-                int32_t messageOffset = offset + msgHeader.encodedLength();
-
-                // Decode the identity message
                 identity.wrapForDecode(
-                    reinterpret_cast<char *>(buffer.buffer()), messageOffset,
+                    reinterpret_cast<char *>(buffer.buffer()), offset,
                     msgHeader.blockLength(), msgHeader.version(),
-                    offset + length);
+                    buffer.capacity());
+
+                // Create simple struct like eLoan does
+                IdentityData identityData;
+                identityData.msg = identity.msg().getCharValAsString();
+                identityData.type = identity.type().getCharValAsString();
+                identityData.id = identity.id().getCharValAsString();
+                identityData.name = identity.name().getCharValAsString();
+                identityData.dateOfIssue =
+                    identity.dateOfIssue().getCharValAsString();
+                identityData.dateOfExpiry =
+                    identity.dateOfExpiry().getCharValAsString();
+                identityData.address = identity.address().getCharValAsString();
+                identityData.verified =
+                    identity.verified().getCharValAsString();
 
                 std::cout << "Successfully decoded message: "
-                          << identity.msg().getCharValAsString()
-                          << ", ID: " << identity.id().getCharValAsString()
+                          << identityData.msg << ", ID: " << identityData.id
                           << std::endl;
 
-                result.emplace(identity);
+                result.emplace(identityData);
             } else {
                 std::cerr << "Unexpected template ID: "
                           << msgHeader.templateId() << std::endl;

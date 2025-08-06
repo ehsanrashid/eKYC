@@ -11,6 +11,7 @@
 #include "Messaging.h"
 #include "config.h"
 #include "loggerwrapper.h"
+#include "sharded_queue.h"  // For IdentityData struct
 
 extern const int ShardId;
 extern LoggerWrapper Log;
@@ -36,11 +37,10 @@ class eKYCEngine final {
 
    private:
     void process_shard_messages(uint8_t shardId) noexcept;
-    void process_identity_message(messages::IdentityMessage& identity,
+    void process_identity_message(IdentityData& identity,
                                   uint8_t shardId) noexcept;
     messages::IdentityMessage create_response_message(
-        messages::IdentityMessage& original, bool verified,
-        uint8_t shardId) noexcept;
+        const IdentityData& original, bool verified, uint8_t shardId) noexcept;
 
     std::atomic<bool> running_;
     std::atomic<std::uint64_t> packetsReceived_;

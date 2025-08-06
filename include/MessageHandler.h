@@ -8,6 +8,11 @@
 
 #include "loggerwrapper.h"
 
+// Add pg_wrapper dependency
+#ifdef USE_PG_WRAPPER
+#include "pg_wrapper.h"
+#endif
+
 extern const int ShardId;
 extern LoggerWrapper Log;
 // Forward declaration
@@ -25,5 +30,12 @@ class MessageHandler final {
     bool add_identity(messages::IdentityMessage &identity) noexcept;
 
    private:
-    // No database connection for now
+#ifdef USE_PG_WRAPPER
+    std::unique_ptr<pg_wrapper::Database> db_;
+    std::atomic<bool> db_connected_{false};
+
+    // Connection management
+    bool ensure_connection() noexcept;
+    void reconnect_if_needed() noexcept;
+#endif
 };

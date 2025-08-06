@@ -109,7 +109,8 @@ void eKYCEngine::process_shard_messages(uint8_t shardId) noexcept {
 
             // Small delay to prevent busy waiting
             if (running_) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(std::chrono::microseconds(
+                    100));  // Reduced from 1ms to 100μs
             }
 
         } catch (const std::exception &e) {

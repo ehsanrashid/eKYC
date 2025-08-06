@@ -186,11 +186,12 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                           name, id);
 
             // Create a simple message handler call
-            // Create a proper SBE message for the database operation - use
-            // fixed block size
+            // Create a proper SBE message for the database operation - like
+            // eLoan
             std::vector<uint8_t> raw_buffer(
                 messages::MessageHeader::encodedLength() +
-                messages::IdentityMessage::sbeBlockLength());
+                messages::IdentityMessage::sbeBlockLength() +
+                sizeof(std::int64_t));  // Add padding like eLoan
 
             aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                           raw_buffer.size());
@@ -207,8 +208,7 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             messages::IdentityMessage identity_encoder;
             identity_encoder.wrapForEncode(
                 reinterpret_cast<char *>(raw_buffer.data()),
-                messages::MessageHeader::encodedLength(),
-                raw_buffer.size() - messages::MessageHeader::encodedLength());
+                messages::MessageHeader::encodedLength(), raw_buffer.size());
 
             // Set the identity data
             identity_encoder.msg().putCharVal(identity.msg);
@@ -263,14 +263,14 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
 messages::IdentityMessage eKYCEngine::create_response_message(
     const IdentityData &original, bool verified, uint8_t shardId) noexcept {
     try {
-        // Calculate exact buffer size needed - use fixed block size
+        // Calculate exact buffer size needed - like eLoan
         std::string responseMsg = "Identity Verification Response";
         std::string responseVerified = verified ? "true" : "false";
 
-        // Use fixed block size - variable fields are already included in the
-        // 512-byte block
+        // Like eLoan: header + block + padding
         size_t totalSize = messages::MessageHeader::encodedLength() +
-                           messages::IdentityMessage::sbeBlockLength();
+                           messages::IdentityMessage::sbeBlockLength() +
+                           sizeof(std::int64_t);  // Add padding like eLoan
 
         std::vector<uint8_t> raw_buffer(totalSize);
 
@@ -289,8 +289,7 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char *>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(),
-            raw_buffer.size() - messages::MessageHeader::encodedLength());
+            messages::MessageHeader::encodedLength(), raw_buffer.size());
 
         // Keep all original fields exactly as received, only update msg and
         // verified
@@ -323,7 +322,8 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         // Create a minimal default response
         std::vector<uint8_t> default_buffer(
             messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength());
+            messages::IdentityMessage::sbeBlockLength() +
+            sizeof(std::int64_t));  // Add padding like eLoan
 
         messages::MessageHeader default_header;
         default_header

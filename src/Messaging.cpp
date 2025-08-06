@@ -105,7 +105,7 @@ void Messaging::listenerLoop() {
 
 bool Messaging::sendResponse(messages::IdentityMessage& identity) {
     try {
-        // Calculate exact buffer size needed - use fixed block size like eLoan
+        // Calculate exact buffer size needed - like eLoan
         std::string msg = identity.msg().getCharValAsString();
         std::string type = identity.type().getCharValAsString();
         std::string id = identity.id().getCharValAsString();
@@ -115,11 +115,11 @@ bool Messaging::sendResponse(messages::IdentityMessage& identity) {
         std::string address = identity.address().getCharValAsString();
         std::string verified = identity.verified().getCharValAsString();
 
-        // Use fixed block size - variable fields are already included in the
-        // 512-byte block
+        // Like eLoan: header + block + padding
         std::vector<uint8_t> raw_buffer(
             messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength());
+            messages::IdentityMessage::sbeBlockLength() +
+            sizeof(std::int64_t));  // Add padding like eLoan
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
@@ -136,8 +136,7 @@ bool Messaging::sendResponse(messages::IdentityMessage& identity) {
         messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char*>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(),
-            raw_buffer.size() - messages::MessageHeader::encodedLength());
+            messages::MessageHeader::encodedLength(), raw_buffer.size());
 
         // Copy all fields from the passed identity message
         response_encoder.msg().putCharVal(msg);

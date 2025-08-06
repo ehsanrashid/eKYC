@@ -45,14 +45,15 @@ std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
             messages::IdentityMessage identity;
 
             msgHeader.wrap(reinterpret_cast<char *>(buffer.buffer()), offset, 0,
-                           length);
+                           buffer.capacity());
             offset += msgHeader.encodedLength();  // usually 8 bytes
 
             if (msgHeader.templateId() ==
                 messages::IdentityMessage::sbeTemplateId()) {
                 identity.wrapForDecode(
                     reinterpret_cast<char *>(buffer.buffer()), offset,
-                    msgHeader.blockLength(), msgHeader.version(), length);
+                    msgHeader.blockLength(), msgHeader.version(),
+                    buffer.capacity());
 
                 // Create simple struct like eLoan does
                 IdentityData identityData;

@@ -10,11 +10,7 @@
 extern const int ShardId;
 extern LoggerWrapper Log;
 
-static constexpr const char* CHANNEL_IN = "aeron:udp?endpoint=localhost:20121";
-static constexpr const char* CHANNEL_OUT = "aeron:udp?endpoint=localhost:20121";
-static constexpr const char* CHANNEL_IPC = "aeron:ipc";
-static constexpr std::int32_t STREAM_ID_IN = 1001;
-static constexpr std::int32_t STREAM_ID_OUT = 2001;
+// Use config values instead of hardcoded ones
 static constexpr std::chrono::duration<long, std::milli> SLEEP_IDLE_MS(1);
 
 Messaging::Messaging() = default;
@@ -26,8 +22,13 @@ bool Messaging::initialize() {
         aeron::Context context;
         aeron_ = aeron::Aeron::connect(context);
 
-        // Create subscription for incoming messages
-        std::int64_t id = aeron_->addSubscription(CHANNEL_IPC, STREAM_ID_IN);
+        // Create subscription for incoming messages using config values
+        std::string channel_in = std::string("aeron:") +
+                                 config::AERON_PROTOCOL +
+                                 "?endpoint=" + config::SUBSCRIPTION_IP + ":" +
+                                 config::SUBSCRIPTION_PORT_STR;
+        std::int64_t id =
+            aeron_->addSubscription(channel_in, config::SUBSCRIPTION_STREAM_ID);
         subscription_ = aeron_->findSubscription(id);
         while (!subscription_) {
             std::this_thread::yield();
@@ -35,8 +36,12 @@ bool Messaging::initialize() {
         }
         Log.info_fast(ShardId, "Subscribed. Sub Id: {}", id);
 
-        // Create publication for outgoing messages
-        id = aeron_->addPublication(CHANNEL_IPC, STREAM_ID_OUT);
+        // Create publication for outgoing messages using config values
+        std::string channel_out = std::string("aeron:") +
+                                  config::AERON_PROTOCOL +
+                                  "?endpoint=" + config::PUBLICATION_IP + ":" +
+                                  config::PUBLICATION_PORT_STR;
+        id = aeron_->addPublication(channel_out, config::PUBLICATION_STREAM_ID);
         publication_ = aeron_->findPublication(id);
         while (!publication_) {
             std::this_thread::yield();

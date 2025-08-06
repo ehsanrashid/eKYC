@@ -69,10 +69,6 @@ std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
                 identityData.verified =
                     identity.verified().getCharValAsString();
 
-                std::cout << "Successfully decoded message: "
-                          << identityData.msg << ", ID: " << identityData.id
-                          << std::endl;
-
                 result.emplace(identityData);
             } else {
                 std::cerr << "Unexpected template ID: "

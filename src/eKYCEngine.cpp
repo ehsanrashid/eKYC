@@ -140,10 +140,6 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                                           uint8_t shardId) noexcept {
     try {
         // Now we have simple string data like eLoan
-        std::cout << "DEBUG - Shard " << (int)shardId << ": name='"
-                  << identity.name << "', id='" << identity.id << "', msg='"
-                  << identity.msg << "'" << std::endl;
-
         Log.info_fast(shardId,
                       "Processing identity message for: {} {} (msg: {})",
                       identity.name, identity.id, identity.msg);
@@ -269,9 +265,6 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
 messages::IdentityMessage eKYCEngine::create_response_message(
     const IdentityData &original, bool verified, uint8_t shardId) noexcept {
     try {
-        std::cout << "DEBUG: Creating response message for shard "
-                  << (int)shardId << std::endl;
-
         // Create response exactly like eLoan's SendMessage method
         std::vector<uint8_t> raw_buffer(
             messages::MessageHeader::encodedLength() +
@@ -279,8 +272,6 @@ messages::IdentityMessage eKYCEngine::create_response_message(
             original.type.size() + original.id.size() + original.name.size() +
             original.dateOfIssue.size() + original.dateOfExpiry.size() +
             original.address.size() + original.verified.size());
-
-        std::cout << "DEBUG: Buffer size: " << raw_buffer.size() << std::endl;
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
@@ -294,14 +285,10 @@ messages::IdentityMessage eKYCEngine::create_response_message(
             .schemaId(messages::IdentityMessage::sbeSchemaId())
             .version(messages::IdentityMessage::sbeSchemaVersion());
 
-        std::cout << "DEBUG: Header encoded successfully" << std::endl;
-
         messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char *>(raw_buffer.data()),
             messages::MessageHeader::encodedLength(), raw_buffer.size());
-
-        std::cout << "DEBUG: Response encoder created" << std::endl;
 
         // Set response data - change msg to "Identity Verification Response"
         // and verified to true/false
@@ -314,8 +301,6 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         response_encoder.address().putCharVal(original.address);
         response_encoder.verified().putCharVal(verified ? "true" : "false");
 
-        std::cout << "DEBUG: Response data set successfully" << std::endl;
-
         // Create a new IdentityMessage from the encoded buffer
         messages::IdentityMessage responseIdentity;
         responseIdentity.wrapForDecode(
@@ -324,15 +309,10 @@ messages::IdentityMessage eKYCEngine::create_response_message(
             header_encoder.blockLength(), header_encoder.version(),
             raw_buffer.size());
 
-        std::cout << "DEBUG: Response message created successfully"
-                  << std::endl;
-
         return responseIdentity;
     } catch (const std::exception &e) {
         Log.error_fast(shardId, "Error creating response message: {}",
                        e.what());
-        std::cout << "ERROR: Exception in create_response_message: " << e.what()
-                  << std::endl;
         // Return a default message in case of error
         // Create a minimal default response
         std::vector<uint8_t> default_buffer(

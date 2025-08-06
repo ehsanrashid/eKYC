@@ -191,6 +191,10 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             std::vector<uint8_t> raw_buffer(
                 messages::MessageHeader::encodedLength() +
                 messages::IdentityMessage::sbeBlockLength() +
+                identity.msg.size() + identity.type.size() +
+                identity.id.size() + identity.name.size() +
+                identity.dateOfIssue.size() + identity.dateOfExpiry.size() +
+                identity.address.size() + identity.verified.size() +
                 sizeof(std::int64_t));  // Add padding like eLoan
 
             aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
@@ -267,10 +271,14 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         std::string responseMsg = "Identity Verification Response";
         std::string responseVerified = verified ? "true" : "false";
 
-        // Like eLoan: header + block + padding
-        size_t totalSize = messages::MessageHeader::encodedLength() +
-                           messages::IdentityMessage::sbeBlockLength() +
-                           sizeof(std::int64_t);  // Add padding like eLoan
+        // Like eLoan: header + block + string sizes + padding
+        size_t totalSize =
+            messages::MessageHeader::encodedLength() +
+            messages::IdentityMessage::sbeBlockLength() + responseMsg.size() +
+            original.type.size() + original.id.size() + original.name.size() +
+            original.dateOfIssue.size() + original.dateOfExpiry.size() +
+            original.address.size() + responseVerified.size() +
+            sizeof(std::int64_t);  // Add padding like eLoan
 
         std::vector<uint8_t> raw_buffer(totalSize);
 

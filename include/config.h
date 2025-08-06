@@ -10,8 +10,7 @@ constexpr int ROTATIING_LOG_SIZE = 0;
 // Sharding configuration
 constexpr int MAIN_THREAD_SHARD_ID = 0;
 constexpr uint8_t NUM_SHARDS = 4;
-constexpr size_t MAX_RING_BUFFER_SIZE =
-    8192;  // Reasonable size for fixed block messages
+constexpr size_t MAX_RING_BUFFER_SIZE = 8192;  // Match eLoan exactly
 
 // Aeron configuration
 constexpr const char* AERON_PROTOCOL = "ipc";

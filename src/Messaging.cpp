@@ -82,9 +82,7 @@ aeron::fragment_handler_t Messaging::fragHandler() {
         Log.info_fast(ShardId, "Round robin assigned shard: {}", shardId);
 
         // Enqueue to the selected shard
-        aeron::concurrent::AtomicBuffer atomicBuffer(
-            const_cast<uint8_t*>(buffer.buffer()), buffer.capacity());
-        sharded_queue[shardId].enqueue(atomicBuffer, offset, length);
+        sharded_queue[shardId].enqueue(buffer, offset, length);
     };
 }
 
@@ -115,10 +113,12 @@ bool Messaging::sendResponse(messages::IdentityMessage& identity) {
         std::string address = identity.address().getCharValAsString();
         std::string verified = identity.verified().getCharValAsString();
 
-        // Like eLoan: header + block + padding
+        // Like eLoan: header + block + string sizes + padding
         std::vector<uint8_t> raw_buffer(
             messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength() +
+            messages::IdentityMessage::sbeBlockLength() + msg.size() +
+            type.size() + id.size() + name.size() + dateOfIssue.size() +
+            dateOfExpiry.size() + address.size() + verified.size() +
             sizeof(std::int64_t));  // Add padding like eLoan
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),

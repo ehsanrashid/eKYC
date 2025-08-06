@@ -140,7 +140,6 @@ void eKYCEngine::process_shard_messages(uint8_t shardId) noexcept {
 void eKYCEngine::process_identity_message(IdentityData &identity,
                                           uint8_t shardId) noexcept {
     try {
-        // Now we have simple string data like eLoan
         Log.info_fast(shardId,
                       "Processing identity message for: {} {} (msg: {})",
                       identity.name, identity.id, identity.msg);
@@ -187,14 +186,11 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                           name, id);
 
             // Create a simple message handler call
-            // Create a proper SBE message for the database operation
+            // Create a proper SBE message for the database operation - use
+            // fixed block size
             std::vector<uint8_t> raw_buffer(
                 messages::MessageHeader::encodedLength() +
-                messages::IdentityMessage::sbeBlockLength() +
-                identity.msg.size() + identity.type.size() +
-                identity.id.size() + identity.name.size() +
-                identity.dateOfIssue.size() + identity.dateOfExpiry.size() +
-                identity.address.size() + identity.verified.size());
+                messages::IdentityMessage::sbeBlockLength());
 
             aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                           raw_buffer.size());
@@ -211,7 +207,8 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             messages::IdentityMessage identity_encoder;
             identity_encoder.wrapForEncode(
                 reinterpret_cast<char *>(raw_buffer.data()),
-                messages::MessageHeader::encodedLength(), raw_buffer.size());
+                messages::MessageHeader::encodedLength(),
+                raw_buffer.size() - messages::MessageHeader::encodedLength());
 
             // Set the identity data
             identity_encoder.msg().putCharVal(identity.msg);
@@ -266,13 +263,16 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
 messages::IdentityMessage eKYCEngine::create_response_message(
     const IdentityData &original, bool verified, uint8_t shardId) noexcept {
     try {
-        // Create response exactly like eLoan's SendMessage method
-        std::vector<uint8_t> raw_buffer(
-            messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength() + original.msg.size() +
-            original.type.size() + original.id.size() + original.name.size() +
-            original.dateOfIssue.size() + original.dateOfExpiry.size() +
-            original.address.size() + original.verified.size());
+        // Calculate exact buffer size needed - use fixed block size
+        std::string responseMsg = "Identity Verification Response";
+        std::string responseVerified = verified ? "true" : "false";
+
+        // Use fixed block size - variable fields are already included in the
+        // 512-byte block
+        size_t totalSize = messages::MessageHeader::encodedLength() +
+                           messages::IdentityMessage::sbeBlockLength();
+
+        std::vector<uint8_t> raw_buffer(totalSize);
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
@@ -289,18 +289,23 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char *>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(), raw_buffer.size());
+            messages::MessageHeader::encodedLength(),
+            raw_buffer.size() - messages::MessageHeader::encodedLength());
 
-        // Set response data - change msg to "Identity Verification Response"
-        // and verified to true/false
-        response_encoder.msg().putCharVal("Identity Verification Response");
-        response_encoder.type().putCharVal(original.type);
-        response_encoder.id().putCharVal(original.id);
-        response_encoder.name().putCharVal(original.name);
-        response_encoder.dateOfIssue().putCharVal(original.dateOfIssue);
-        response_encoder.dateOfExpiry().putCharVal(original.dateOfExpiry);
-        response_encoder.address().putCharVal(original.address);
-        response_encoder.verified().putCharVal(verified ? "true" : "false");
+        // Keep all original fields exactly as received, only update msg and
+        // verified
+        response_encoder.msg().putCharVal(responseMsg);     // Only this changes
+        response_encoder.type().putCharVal(original.type);  // Keep original
+        response_encoder.id().putCharVal(original.id);      // Keep original
+        response_encoder.name().putCharVal(original.name);  // Keep original
+        response_encoder.dateOfIssue().putCharVal(
+            original.dateOfIssue);  // Keep original
+        response_encoder.dateOfExpiry().putCharVal(
+            original.dateOfExpiry);  // Keep original
+        response_encoder.address().putCharVal(
+            original.address);  // Keep original
+        response_encoder.verified().putCharVal(
+            responseVerified);  // Only this changes
 
         // Create a new IdentityMessage from the encoded buffer
         messages::IdentityMessage responseIdentity;

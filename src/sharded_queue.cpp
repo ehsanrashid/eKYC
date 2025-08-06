@@ -16,17 +16,17 @@ ShardedQueue::~ShardedQueue() = default;
 
 void ShardedQueue::enqueue(aeron::concurrent::AtomicBuffer buffer,
                            int32_t offset, int32_t length) {
-    aeron::concurrent::BackoffIdleStrategy idleStrategy(
-        config::IDLE_STRATEGY_SPINS, config::IDLE_STRATEGY_YIELDS);
+    aeron::concurrent::BackoffIdleStrategy idleStrategy(100, 1000);
     bool isWritten = false;
     auto start = std::chrono::high_resolution_clock::now();
+
     while (!isWritten) {
         isWritten = _ring_buffer.write(1, buffer, offset, length);
         if (isWritten) {
             return;
         }
         if (std::chrono::high_resolution_clock::now() - start >=
-            std::chrono::microseconds(config::SHARD_TIMEOUT_MS * 1000)) {
+            std::chrono::microseconds(50)) {
             std::cerr << "retry timeout" << std::endl;
             return;
         }
@@ -45,15 +45,14 @@ std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
             messages::IdentityMessage identity;
 
             msgHeader.wrap(reinterpret_cast<char *>(buffer.buffer()), offset, 0,
-                           buffer.capacity());
+                           length);
             offset += msgHeader.encodedLength();  // usually 8 bytes
 
             if (msgHeader.templateId() ==
                 messages::IdentityMessage::sbeTemplateId()) {
                 identity.wrapForDecode(
                     reinterpret_cast<char *>(buffer.buffer()), offset,
-                    msgHeader.blockLength(), msgHeader.version(),
-                    buffer.capacity());
+                    msgHeader.blockLength(), msgHeader.version(), length);
 
                 // Create simple struct like eLoan does
                 IdentityData identityData;

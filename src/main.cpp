@@ -33,8 +33,7 @@ int main(int argc, char** argv) {
         eKYC->start();
 
         while (keepRunning) {
-            std::this_thread::sleep_for(
-                std::chrono::microseconds(100));  // Reduced from 500ms to 100μs
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
 
         if (inputThread.joinable()) inputThread.join();

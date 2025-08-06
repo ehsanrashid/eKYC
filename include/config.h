@@ -10,7 +10,8 @@ constexpr int ROTATIING_LOG_SIZE = 0;
 // Sharding configuration
 constexpr int MAIN_THREAD_SHARD_ID = 0;
 constexpr uint8_t NUM_SHARDS = 4;
-constexpr size_t MAX_RING_BUFFER_SIZE = 8192;
+constexpr size_t MAX_RING_BUFFER_SIZE =
+    8192;  // Reasonable size for fixed block messages
 
 // Aeron configuration
 constexpr const char* AERON_PROTOCOL = "ipc";
@@ -30,8 +31,8 @@ constexpr const char* DB_NAME = "ekycdb";
 constexpr const char* DB_USER = "huzaifa";
 constexpr const char* DB_PASSWORD = "3214";
 
-// Performance tuning
-constexpr int SHARD_TIMEOUT_MS = 50;
-constexpr int IDLE_STRATEGY_SPINS = 100;
-constexpr int IDLE_STRATEGY_YIELDS = 1000;
+// Performance tuning - like eLoan
+constexpr int SHARD_TIMEOUT_MS = 50;        // Like eLoan's 50 microseconds
+constexpr int IDLE_STRATEGY_SPINS = 100;    // Like eLoan
+constexpr int IDLE_STRATEGY_YIELDS = 1000;  // Like eLoan
 }  // namespace config

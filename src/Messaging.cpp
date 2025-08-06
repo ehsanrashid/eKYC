@@ -1,9 +1,18 @@
 #include "Messaging.h"
 
+#include <Aeron.h>
+#include <Context.h>
+#include <FragmentAssembler.h>
+#include <Publication.h>
+#include <Subscription.h>
+
 #include <chrono>
+#include <functional>
 #include <iostream>
 #include <vector>
 
+#include "config.h"
+#include "loggerwrapper.h"
 #include "messages/IdentityMessage.h"
 #include "messages/MessageHeader.h"
 
@@ -96,11 +105,21 @@ void Messaging::listenerLoop() {
 
 bool Messaging::sendResponse(messages::IdentityMessage& identity) {
     try {
-        // Send a simple hardcoded response like eLoan does
+        // Calculate exact buffer size needed - use fixed block size like eLoan
+        std::string msg = identity.msg().getCharValAsString();
+        std::string type = identity.type().getCharValAsString();
+        std::string id = identity.id().getCharValAsString();
+        std::string name = identity.name().getCharValAsString();
+        std::string dateOfIssue = identity.dateOfIssue().getCharValAsString();
+        std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
+        std::string address = identity.address().getCharValAsString();
+        std::string verified = identity.verified().getCharValAsString();
+
+        // Use fixed block size - variable fields are already included in the
+        // 512-byte block
         std::vector<uint8_t> raw_buffer(
             messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength() + 64 + 64 + 64 + 64 +
-            64 + 64 + 64 + 64);  // Max string lengths
+            messages::IdentityMessage::sbeBlockLength());
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
@@ -117,18 +136,18 @@ bool Messaging::sendResponse(messages::IdentityMessage& identity) {
         messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char*>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(), raw_buffer.size());
+            messages::MessageHeader::encodedLength(),
+            raw_buffer.size() - messages::MessageHeader::encodedLength());
 
-        // Set hardcoded response data
-        response_encoder.msg().putCharVal("Identity Verification Response");
-        response_encoder.type().putCharVal("cnic");
-        response_encoder.id().putCharVal("4210109729681");
-        response_encoder.name().putCharVal("Huzaifa Ahmed");
-        response_encoder.dateOfIssue().putCharVal("2020-01-01");
-        response_encoder.dateOfExpiry().putCharVal("2025-01-01");
-        response_encoder.address().putCharVal(
-            "Khurram Heights, Block 2, Gulshan-e-Iqbal, Karachi");
-        response_encoder.verified().putCharVal("true");
+        // Copy all fields from the passed identity message
+        response_encoder.msg().putCharVal(msg);
+        response_encoder.type().putCharVal(type);
+        response_encoder.id().putCharVal(id);
+        response_encoder.name().putCharVal(name);
+        response_encoder.dateOfIssue().putCharVal(dateOfIssue);
+        response_encoder.dateOfExpiry().putCharVal(dateOfExpiry);
+        response_encoder.address().putCharVal(address);
+        response_encoder.verified().putCharVal(verified);
 
         std::int64_t result = publication_->offer(
             atomic_buffer, 0,

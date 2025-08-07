@@ -1,7 +1,7 @@
 #ifndef SHARDED_QUEUE_H
 #define SHARDED_QUEUE_H
 
-#include <concurrent/ringbuffer/OneToOneRingBuffer.h>
+#include <concurrent/ringbuffer/ManyToOneRingBuffer.h>
 
 #include <optional>
 #include <string>
@@ -37,7 +37,7 @@ class ShardedQueue {
             aeron::concurrent::ringbuffer::RingBufferDescriptor::TRAILER_LENGTH>
         buffer;
     aeron::concurrent::AtomicBuffer _buffer;
-    aeron::concurrent::ringbuffer::OneToOneRingBuffer _ring_buffer;
+    aeron::concurrent::ringbuffer::ManyToOneRingBuffer _ring_buffer;
 };
 
 #endif  // SHARDED_QUEUE_H

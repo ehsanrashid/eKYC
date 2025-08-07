@@ -39,21 +39,39 @@ std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
     _ring_buffer.read([&](int8_t msgType,
                           aeron::concurrent::AtomicBuffer &buffer,
                           int32_t offset, int32_t length) {
+        // 🔧 ADD VALIDATION
+        if (length < 8) {  // Minimum header size
+            std::cerr << "Message too short: " << length << " bytes"
+                      << std::endl;
+            return;
+        }
+
         try {
-            // SBE decoding exactly like eLoan
             my::app::messages::MessageHeader msgHeader;
             my::app::messages::IdentityMessage identity;
 
+            // 🔧 FIX: Use consistent buffer size
             msgHeader.wrap(reinterpret_cast<char *>(buffer.buffer()), offset, 0,
-                           length);
-            offset += msgHeader.encodedLength();  // usually 8 bytes
+                           buffer.capacity());
+
+            //  VALIDATE MESSAGE LENGTH
+            if (length < msgHeader.encodedLength() + msgHeader.blockLength()) {
+                std::cerr << "Message incomplete: got " << length << ", need "
+                          << (msgHeader.encodedLength() +
+                              msgHeader.blockLength())
+                          << std::endl;
+                return;
+            }
+
+            offset += msgHeader.encodedLength();
 
             if (msgHeader.templateId() ==
                 my::app::messages::IdentityMessage::sbeTemplateId()) {
+                // 🔧 FIX: Use consistent buffer size
                 identity.wrapForDecode(
                     reinterpret_cast<char *>(buffer.buffer()), offset,
                     msgHeader.blockLength(), msgHeader.version(),
-                    buffer.capacity());
+                    buffer.capacity());  // Use capacity for both
 
                 // Create simple struct like eLoan does
                 IdentityData identityData;

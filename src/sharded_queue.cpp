@@ -45,7 +45,7 @@ std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
             my::app::messages::IdentityMessage identity;
 
             msgHeader.wrap(reinterpret_cast<char *>(buffer.buffer()), offset, 0,
-                           buffer.capacity());
+                           length);
             offset += msgHeader.encodedLength();  // usually 8 bytes
 
             if (msgHeader.templateId() ==

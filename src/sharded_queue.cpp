@@ -41,15 +41,15 @@ std::optional<std::variant<IdentityData>> ShardedQueue::dequeue() {
                           int32_t offset, int32_t length) {
         try {
             // SBE decoding exactly like eLoan
-            messages::MessageHeader msgHeader;
-            messages::IdentityMessage identity;
+            my::app::messages::MessageHeader msgHeader;
+            my::app::messages::IdentityMessage identity;
 
             msgHeader.wrap(reinterpret_cast<char *>(buffer.buffer()), offset, 0,
                            buffer.capacity());
             offset += msgHeader.encodedLength();  // usually 8 bytes
 
             if (msgHeader.templateId() ==
-                messages::IdentityMessage::sbeTemplateId()) {
+                my::app::messages::IdentityMessage::sbeTemplateId()) {
                 identity.wrapForDecode(
                     reinterpret_cast<char *>(buffer.buffer()), offset,
                     msgHeader.blockLength(), msgHeader.version(),

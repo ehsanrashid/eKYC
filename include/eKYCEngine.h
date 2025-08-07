@@ -39,7 +39,7 @@ class eKYCEngine final {
     void process_shard_messages(uint8_t shardId) noexcept;
     void process_identity_message(IdentityData& identity,
                                   uint8_t shardId) noexcept;
-    messages::IdentityMessage create_response_message(
+    my::app::messages::IdentityMessage create_response_message(
         const IdentityData& original, bool verified, uint8_t shardId) noexcept;
 
     std::atomic<bool> running_;

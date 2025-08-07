@@ -101,7 +101,7 @@ void Messaging::listenerLoop() {
     Log.info_fast(ShardId, "Listener thread exiting");
 }
 
-bool Messaging::sendResponse(messages::IdentityMessage& identity) {
+bool Messaging::sendResponse(my::app::messages::IdentityMessage& identity) {
     try {
         // Calculate exact buffer size needed - like eLoan
         std::string msg = identity.msg().getCharValAsString();
@@ -115,28 +115,26 @@ bool Messaging::sendResponse(messages::IdentityMessage& identity) {
 
         // Like eLoan: header + block + string sizes + padding
         std::vector<uint8_t> raw_buffer(
-            messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength() + msg.size() +
-            type.size() + id.size() + name.size() + dateOfIssue.size() +
-            dateOfExpiry.size() + address.size() + verified.size() +
-            sizeof(std::int64_t));  // Add padding like eLoan
+            my::app::messages::MessageHeader::encodedLength() +
+            my::app::messages::IdentityMessage::sbeBlockLength());
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
 
-        messages::MessageHeader header_encoder;
+        my::app::messages::MessageHeader header_encoder;
         header_encoder
             .wrap(reinterpret_cast<char*>(raw_buffer.data()), 0, 0,
                   raw_buffer.size())
-            .blockLength(messages::IdentityMessage::sbeBlockLength())
-            .templateId(messages::IdentityMessage::sbeTemplateId())
-            .schemaId(messages::IdentityMessage::sbeSchemaId())
-            .version(messages::IdentityMessage::sbeSchemaVersion());
+            .blockLength(my::app::messages::IdentityMessage::sbeBlockLength())
+            .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
+            .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
+            .version(my::app::messages::IdentityMessage::sbeSchemaVersion());
 
-        messages::IdentityMessage response_encoder;
+        my::app::messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char*>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(), raw_buffer.size());
+            my::app::messages::MessageHeader::encodedLength(),
+            raw_buffer.size());
 
         // Copy all fields from the passed identity message
         response_encoder.msg().putCharVal(msg);

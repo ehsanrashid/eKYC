@@ -11,7 +11,7 @@
 
 namespace {
 
-void log_identity(messages::IdentityMessage &identity) {
+void log_identity(my::app::messages::IdentityMessage &identity) {
     Log.info_fast(ShardId, "msg: {}", identity.msg().getCharValAsString());
     Log.info_fast(ShardId, "type: {}", identity.type().getCharValAsString());
     Log.info_fast(ShardId, "id: {}", identity.id().getCharValAsString());
@@ -148,7 +148,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 
 // Add user to database
 bool MessageHandler::add_identity(
-    messages::IdentityMessage &identity) noexcept {
+    my::app::messages::IdentityMessage &identity) noexcept {
 #ifdef USE_PG_WRAPPER
     if (!ensure_connection()) {
         Log.error_fast(ShardId, "Database not connected for adding user");

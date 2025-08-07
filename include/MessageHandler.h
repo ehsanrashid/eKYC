@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "loggerwrapper.h"
-
+#include "messages/IdentityMessage.h"
 // Add pg_wrapper dependency
 #ifdef USE_PG_WRAPPER
 #include "pg_wrapper.h"
@@ -15,10 +15,6 @@
 
 extern const int ShardId;
 extern LoggerWrapper Log;
-// Forward declaration
-namespace messages {
-class IdentityMessage;
-}
 
 class MessageHandler final {
    public:
@@ -27,7 +23,7 @@ class MessageHandler final {
 
     bool exist_user(const std::string &identityNumber,
                     const std::string &name) noexcept;
-    bool add_identity(messages::IdentityMessage &identity) noexcept;
+    bool add_identity(my::app::messages::IdentityMessage &identity) noexcept;
 
    private:
 #ifdef USE_PG_WRAPPER

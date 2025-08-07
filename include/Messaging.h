@@ -28,7 +28,7 @@ class Messaging {
     void shutdown();
 
     /// Send response message
-    bool sendResponse(messages::IdentityMessage& identity);
+    bool sendResponse(my::app::messages::IdentityMessage& identity);
 
     /// Get access to sharded queues
     std::array<ShardedQueue, config::NUM_SHARDS>& getQueue();

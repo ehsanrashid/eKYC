@@ -164,14 +164,14 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                 Log.info_fast(shardId, "Verification successful for {} {}",
                               name, id);
                 // Create response with verified=true
-                messages::IdentityMessage responseIdentity =
+                my::app::messages::IdentityMessage responseIdentity =
                     create_response_message(identity, true, shardId);
                 messaging_->sendResponse(responseIdentity);
             } else {
                 Log.info_fast(shardId, "Verification failed for {} {}", name,
                               id);
                 // Create response with verified=false
-                messages::IdentityMessage responseIdentity =
+                my::app::messages::IdentityMessage responseIdentity =
                     create_response_message(identity, false, shardId);
                 messaging_->sendResponse(responseIdentity);
             }
@@ -189,8 +189,8 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             // Create a proper SBE message for the database operation - like
             // eLoan
             std::vector<uint8_t> raw_buffer(
-                messages::MessageHeader::encodedLength() +
-                messages::IdentityMessage::sbeBlockLength() +
+                my::app::messages::MessageHeader::encodedLength() +
+                my::app::messages::IdentityMessage::sbeBlockLength() +
                 identity.msg.size() + identity.type.size() +
                 identity.id.size() + identity.name.size() +
                 identity.dateOfIssue.size() + identity.dateOfExpiry.size() +
@@ -200,19 +200,22 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                           raw_buffer.size());
 
-            messages::MessageHeader header_encoder;
+            my::app::messages::MessageHeader header_encoder;
             header_encoder
                 .wrap(reinterpret_cast<char *>(raw_buffer.data()), 0, 0,
                       raw_buffer.size())
-                .blockLength(messages::IdentityMessage::sbeBlockLength())
-                .templateId(messages::IdentityMessage::sbeTemplateId())
-                .schemaId(messages::IdentityMessage::sbeSchemaId())
-                .version(messages::IdentityMessage::sbeSchemaVersion());
+                .blockLength(
+                    my::app::messages::IdentityMessage::sbeBlockLength())
+                .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
+                .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
+                .version(
+                    my::app::messages::IdentityMessage::sbeSchemaVersion());
 
-            messages::IdentityMessage identity_encoder;
+            my::app::messages::IdentityMessage identity_encoder;
             identity_encoder.wrapForEncode(
                 reinterpret_cast<char *>(raw_buffer.data()),
-                messages::MessageHeader::encodedLength(), raw_buffer.size());
+                my::app::messages::MessageHeader::encodedLength(),
+                raw_buffer.size());
 
             // Set the identity data
             identity_encoder.msg().putCharVal(identity.msg);
@@ -225,10 +228,10 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             identity_encoder.verified().putCharVal(identity.verified);
 
             // Create a proper IdentityMessage for the database call
-            messages::IdentityMessage sbeIdentity;
+            my::app::messages::IdentityMessage sbeIdentity;
             sbeIdentity.wrapForDecode(
                 reinterpret_cast<char *>(raw_buffer.data()),
-                messages::MessageHeader::encodedLength(),
+                my::app::messages::MessageHeader::encodedLength(),
                 header_encoder.blockLength(), header_encoder.version(),
                 raw_buffer.size());
 
@@ -239,14 +242,14 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                               name, id);
                 // Send back response with verified=true (user added
                 // successfully)
-                messages::IdentityMessage responseIdentity =
+                my::app::messages::IdentityMessage responseIdentity =
                     create_response_message(identity, true, shardId);
                 messaging_->sendResponse(responseIdentity);
             } else {
                 Log.info_fast(shardId, "User addition failed for {} {}", name,
                               id);
                 // Send back response with verified=false (user addition failed)
-                messages::IdentityMessage responseIdentity =
+                my::app::messages::IdentityMessage responseIdentity =
                     create_response_message(identity, false, shardId);
                 messaging_->sendResponse(responseIdentity);
             }
@@ -264,7 +267,7 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
     }
 }
 
-messages::IdentityMessage eKYCEngine::create_response_message(
+my::app::messages::IdentityMessage eKYCEngine::create_response_message(
     const IdentityData &original, bool verified, uint8_t shardId) noexcept {
     try {
         // Calculate exact buffer size needed - like eLoan
@@ -273,11 +276,12 @@ messages::IdentityMessage eKYCEngine::create_response_message(
 
         // Like eLoan: header + block + string sizes + padding
         size_t totalSize =
-            messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength() + responseMsg.size() +
-            original.type.size() + original.id.size() + original.name.size() +
-            original.dateOfIssue.size() + original.dateOfExpiry.size() +
-            original.address.size() + responseVerified.size() +
+            my::app::messages::MessageHeader::encodedLength() +
+            my::app::messages::IdentityMessage::sbeBlockLength() +
+            responseMsg.size() + original.type.size() + original.id.size() +
+            original.name.size() + original.dateOfIssue.size() +
+            original.dateOfExpiry.size() + original.address.size() +
+            responseVerified.size() +
             sizeof(std::int64_t);  // Add padding like eLoan
 
         std::vector<uint8_t> raw_buffer(totalSize);
@@ -285,19 +289,20 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
 
-        messages::MessageHeader header_encoder;
+        my::app::messages::MessageHeader header_encoder;
         header_encoder
             .wrap(reinterpret_cast<char *>(raw_buffer.data()), 0, 0,
                   raw_buffer.size())
-            .blockLength(messages::IdentityMessage::sbeBlockLength())
-            .templateId(messages::IdentityMessage::sbeTemplateId())
-            .schemaId(messages::IdentityMessage::sbeSchemaId())
-            .version(messages::IdentityMessage::sbeSchemaVersion());
+            .blockLength(my::app::messages::IdentityMessage::sbeBlockLength())
+            .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
+            .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
+            .version(my::app::messages::IdentityMessage::sbeSchemaVersion());
 
-        messages::IdentityMessage response_encoder;
+        my::app::messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
             reinterpret_cast<char *>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(), raw_buffer.size());
+            my::app::messages::MessageHeader::encodedLength(),
+            raw_buffer.size());
 
         // Keep all original fields exactly as received, only update msg and
         // verified
@@ -315,10 +320,10 @@ messages::IdentityMessage eKYCEngine::create_response_message(
             responseVerified);  // Only this changes
 
         // Create a new IdentityMessage from the encoded buffer
-        messages::IdentityMessage responseIdentity;
+        my::app::messages::IdentityMessage responseIdentity;
         responseIdentity.wrapForDecode(
             reinterpret_cast<char *>(raw_buffer.data()),
-            messages::MessageHeader::encodedLength(),
+            my::app::messages::MessageHeader::encodedLength(),
             header_encoder.blockLength(), header_encoder.version(),
             raw_buffer.size());
 
@@ -329,23 +334,23 @@ messages::IdentityMessage eKYCEngine::create_response_message(
         // Return a default message in case of error
         // Create a minimal default response
         std::vector<uint8_t> default_buffer(
-            messages::MessageHeader::encodedLength() +
-            messages::IdentityMessage::sbeBlockLength() +
+            my::app::messages::MessageHeader::encodedLength() +
+            my::app::messages::IdentityMessage::sbeBlockLength() +
             sizeof(std::int64_t));  // Add padding like eLoan
 
-        messages::MessageHeader default_header;
+        my::app::messages::MessageHeader default_header;
         default_header
             .wrap(reinterpret_cast<char *>(default_buffer.data()), 0, 0,
                   default_buffer.size())
-            .blockLength(messages::IdentityMessage::sbeBlockLength())
-            .templateId(messages::IdentityMessage::sbeTemplateId())
-            .schemaId(messages::IdentityMessage::sbeSchemaId())
-            .version(messages::IdentityMessage::sbeSchemaVersion());
+            .blockLength(my::app::messages::IdentityMessage::sbeBlockLength())
+            .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
+            .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
+            .version(my::app::messages::IdentityMessage::sbeSchemaVersion());
 
-        messages::IdentityMessage default_response;
+        my::app::messages::IdentityMessage default_response;
         default_response.wrapForDecode(
             reinterpret_cast<char *>(default_buffer.data()),
-            messages::MessageHeader::encodedLength(),
+            my::app::messages::MessageHeader::encodedLength(),
             default_header.blockLength(), default_header.version(),
             default_buffer.size());
 

@@ -1,7 +1,7 @@
 #ifndef SHARDED_QUEUE_H
 #define SHARDED_QUEUE_H
 
-#include <concurrent/ringbuffer/ManyToOneRingBuffer.h>
+#include <concurrent/ringbuffer/OneToOneRingBuffer.h>
 
 #include <optional>
 #include <string>
@@ -26,7 +26,8 @@ class ShardedQueue {
    public:
     ShardedQueue();
     ~ShardedQueue();
-    void enqueue(aeron::concurrent::AtomicBuffer, int32_t, int32_t);
+    void enqueue(const aeron::concurrent::AtomicBuffer& buffer, int offset,
+                 int length);
     std::optional<std::variant<IdentityData>> dequeue();
     int size();
 
@@ -37,7 +38,7 @@ class ShardedQueue {
             aeron::concurrent::ringbuffer::RingBufferDescriptor::TRAILER_LENGTH>
         buffer;
     aeron::concurrent::AtomicBuffer _buffer;
-    aeron::concurrent::ringbuffer::ManyToOneRingBuffer _ring_buffer;
+    aeron::concurrent::ringbuffer::OneToOneRingBuffer _ring_buffer;
 };
 
 #endif  // SHARDED_QUEUE_H

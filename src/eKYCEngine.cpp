@@ -185,9 +185,7 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                           "Processing Add User in System request for: {} {}",
                           name, id);
 
-            // Create a simple message handler call
-            // Create a proper SBE message for the database operation - like
-            // eLoan
+            // Create a proper SBE message for the database operation
             std::vector<uint8_t> raw_buffer(
                 my::app::messages::MessageHeader::encodedLength() +
                 my::app::messages::IdentityMessage::sbeBlockLength() +
@@ -195,10 +193,7 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
                 identity.id.size() + identity.name.size() +
                 identity.dateOfIssue.size() + identity.dateOfExpiry.size() +
                 identity.address.size() + identity.verified.size() +
-                sizeof(std::int64_t));  // Add padding like eLoan
-
-            aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
-                                                          raw_buffer.size());
+                sizeof(std::int64_t));  // Add padding
 
             my::app::messages::MessageHeader header_encoder;
             header_encoder
@@ -227,15 +222,8 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
             identity_encoder.address().putCharVal(identity.address);
             identity_encoder.verified().putCharVal(identity.verified);
 
-            // Create a proper IdentityMessage for the database call
-            my::app::messages::IdentityMessage sbeIdentity;
-            sbeIdentity.wrapForDecode(
-                reinterpret_cast<char *>(raw_buffer.data()),
-                my::app::messages::MessageHeader::encodedLength(),
-                header_encoder.blockLength(), header_encoder.version(),
-                raw_buffer.size());
-
-            bool identityAdded = messageHandler_.add_identity(sbeIdentity);
+            // Pass the encoded message directly to the handler
+            bool identityAdded = messageHandler_.add_identity(identity_encoder);
 
             if (identityAdded) {
                 Log.info_fast(shardId, "User addition successful for {} {}",
@@ -270,29 +258,29 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
 my::app::messages::IdentityMessage eKYCEngine::create_response_message(
     const IdentityData &original, bool verified, uint8_t shardId) noexcept {
     try {
-        // Calculate exact buffer size needed - like eLoan
+        // Calculate exact buffer size needed
         std::string responseMsg = "Identity Verification Response";
         std::string responseVerified = verified ? "true" : "false";
 
-        // Like eLoan: header + block + string sizes + padding
+        // Calculate proper size including all SBE string headers
         size_t totalSize =
             my::app::messages::MessageHeader::encodedLength() +
             my::app::messages::IdentityMessage::sbeBlockLength() +
-            responseMsg.size() + original.type.size() + original.id.size() +
-            original.name.size() + original.dateOfIssue.size() +
-            original.dateOfExpiry.size() + original.address.size() +
-            responseVerified.size() +
-            sizeof(std::int64_t);  // Add padding like eLoan
+            (responseMsg.size() + 4) +  // 4 bytes for string length header
+            (original.type.size() + 4) + (original.id.size() + 4) +
+            (original.name.size() + 4) + (original.dateOfIssue.size() + 4) +
+            (original.dateOfExpiry.size() + 4) + (original.address.size() + 4) +
+            (responseVerified.size() + 4) + 64;  // Extra padding for alignment
 
-        std::vector<uint8_t> raw_buffer(totalSize);
-
-        aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
-                                                      raw_buffer.size());
+        // Use a static thread_local buffer to ensure lifetime
+        static thread_local std::vector<uint8_t> response_buffer;
+        response_buffer.resize(totalSize);
+        response_buffer.assign(totalSize, 0);  // Zero initialize
 
         my::app::messages::MessageHeader header_encoder;
         header_encoder
-            .wrap(reinterpret_cast<char *>(raw_buffer.data()), 0, 0,
-                  raw_buffer.size())
+            .wrap(reinterpret_cast<char *>(response_buffer.data()), 0, 0,
+                  response_buffer.size())
             .blockLength(my::app::messages::IdentityMessage::sbeBlockLength())
             .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
             .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
@@ -300,43 +288,34 @@ my::app::messages::IdentityMessage eKYCEngine::create_response_message(
 
         my::app::messages::IdentityMessage response_encoder;
         response_encoder.wrapForEncode(
-            reinterpret_cast<char *>(raw_buffer.data()),
+            reinterpret_cast<char *>(response_buffer.data()),
             my::app::messages::MessageHeader::encodedLength(),
-            raw_buffer.size());
+            response_buffer.size());
 
-        // Keep all original fields exactly as received, only update msg and
-        // verified
-        response_encoder.msg().putCharVal(responseMsg);     // Only this changes
-        response_encoder.type().putCharVal(original.type);  // Keep original
-        response_encoder.id().putCharVal(original.id);      // Keep original
-        response_encoder.name().putCharVal(original.name);  // Keep original
-        response_encoder.dateOfIssue().putCharVal(
-            original.dateOfIssue);  // Keep original
-        response_encoder.dateOfExpiry().putCharVal(
-            original.dateOfExpiry);  // Keep original
-        response_encoder.address().putCharVal(
-            original.address);  // Keep original
-        response_encoder.verified().putCharVal(
-            responseVerified);  // Only this changes
+        // Set all fields carefully
+        response_encoder.msg().putCharVal(responseMsg);
+        response_encoder.type().putCharVal(original.type);
+        response_encoder.id().putCharVal(original.id);
+        response_encoder.name().putCharVal(original.name);
+        response_encoder.dateOfIssue().putCharVal(original.dateOfIssue);
+        response_encoder.dateOfExpiry().putCharVal(original.dateOfExpiry);
+        response_encoder.address().putCharVal(original.address);
+        response_encoder.verified().putCharVal(responseVerified);
 
-        // Create a new IdentityMessage from the encoded buffer
-        my::app::messages::IdentityMessage responseIdentity;
-        responseIdentity.wrapForDecode(
-            reinterpret_cast<char *>(raw_buffer.data()),
+        // Create a decoder to return a readable message
+        my::app::messages::IdentityMessage response_decoder;
+        response_decoder.wrapForDecode(
+            reinterpret_cast<char *>(response_buffer.data()),
             my::app::messages::MessageHeader::encodedLength(),
             header_encoder.blockLength(), header_encoder.version(),
-            raw_buffer.size());
+            response_buffer.size());
 
-        return responseIdentity;
+        return response_decoder;
     } catch (const std::exception &e) {
         Log.error_fast(shardId, "Error creating response message: {}",
                        e.what());
-        // Return a default message in case of error
-        // Create a minimal default response
-        std::vector<uint8_t> default_buffer(
-            my::app::messages::MessageHeader::encodedLength() +
-            my::app::messages::IdentityMessage::sbeBlockLength() +
-            sizeof(std::int64_t));  // Add padding like eLoan
+        // Return a minimal default message
+        static thread_local std::vector<uint8_t> default_buffer(512, 0);
 
         my::app::messages::MessageHeader default_header;
         default_header

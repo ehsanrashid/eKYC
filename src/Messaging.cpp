@@ -19,7 +19,6 @@
 extern const int ShardId;
 extern LoggerWrapper Log;
 
-// Use config values instead of hardcoded ones
 static constexpr std::chrono::duration<long, std::milli> SLEEP_IDLE_MS(1);
 
 Messaging::Messaging() = default;
@@ -75,7 +74,8 @@ aeron::fragment_handler_t Messaging::fragHandler() {
         if (length < sizeof(std::uint8_t)) {
             return;  // too small to read any header
         }
-        Log.info_fast(ShardId, "-----Got New Identity Message-----");
+        Log.info_fast(ShardId, "NEW MESSAGE RECEIVED: offset={}, length={}",
+                      offset, length);
 
         // Simple round-robin sharding like eLoan
         uint8_t shardId = (_shard_counter.fetch_add(1)) % config::NUM_SHARDS;
@@ -103,7 +103,7 @@ void Messaging::listenerLoop() {
 
 bool Messaging::sendResponse(my::app::messages::IdentityMessage& identity) {
     try {
-        // Calculate exact buffer size needed - like eLoan
+        // Read the fields from the identity message
         std::string msg = identity.msg().getCharValAsString();
         std::string type = identity.type().getCharValAsString();
         std::string id = identity.id().getCharValAsString();
@@ -113,10 +113,16 @@ bool Messaging::sendResponse(my::app::messages::IdentityMessage& identity) {
         std::string address = identity.address().getCharValAsString();
         std::string verified = identity.verified().getCharValAsString();
 
-        // Like eLoan: header + block + string sizes + padding
-        std::vector<uint8_t> raw_buffer(
+        // Calculate proper buffer size with SBE string headers
+        size_t total_length =
             my::app::messages::MessageHeader::encodedLength() +
-            my::app::messages::IdentityMessage::sbeBlockLength());
+            my::app::messages::IdentityMessage::sbeBlockLength() +
+            (msg.size() + 4) + (type.size() + 4) + (id.size() + 4) +
+            (name.size() + 4) + (dateOfIssue.size() + 4) +
+            (dateOfExpiry.size() + 4) + (address.size() + 4) +
+            (verified.size() + 4) + 64;  // Extra padding
+
+        std::vector<uint8_t> raw_buffer(total_length, 0);
 
         aeron::concurrent::AtomicBuffer atomic_buffer(raw_buffer.data(),
                                                       raw_buffer.size());
@@ -136,7 +142,7 @@ bool Messaging::sendResponse(my::app::messages::IdentityMessage& identity) {
             my::app::messages::MessageHeader::encodedLength(),
             raw_buffer.size());
 
-        // Copy all fields from the passed identity message
+        // Set all fields
         response_encoder.msg().putCharVal(msg);
         response_encoder.type().putCharVal(type);
         response_encoder.id().putCharVal(id);

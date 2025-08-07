@@ -2,6 +2,8 @@
 
 #include <exception>
 #include <iostream>
+#include <mutex>
+#include <sstream>
 
 #include "config.h"
 #include "helper.h"
@@ -9,7 +11,19 @@
 #include "messages/IdentityMessage.h"
 #include "messages/MessageHeader.h"
 
+// Add utils include:
+
+#include "config.h"
+#include "helper.h"
+#include "messages/Char64str.h"
+#include "messages/IdentityMessage.h"
+#include "messages/MessageHeader.h"
+#include "utils.h"
+
 namespace {
+#ifdef USE_PG_WRAPPER
+static std::mutex db_mutex;  // Global mutex for database operations
+#endif
 
 void log_identity(my::app::messages::IdentityMessage &identity) {
     Log.info_fast(ShardId, "msg: {}", identity.msg().getCharValAsString());
@@ -109,12 +123,15 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
     }
 
     try {
-        // Use prepared statement for better performance
-        std::string selectQuery =
-            "SELECT identity_number, name FROM users WHERE identity_number = "
-            "$1 AND name = $2";
+        // Thread-safe database access
+        std::lock_guard<std::mutex> lock(db_mutex);
 
-        auto result = db_->exec(selectQuery, {identityNumber, name});
+        // Use utility function to build query
+        std::string query = ekyc_utils::build_select_sql(
+            "users", {"identity_number", "name"}, "identity_number",
+            identityNumber, "name", name);
+
+        auto result = db_->exec(query);
         bool exists = !result.empty();
 
         Log.info_fast(ShardId,
@@ -173,14 +190,17 @@ bool MessageHandler::add_identity(
             return false;
         }
 
-        // Insert user with prepared statement
-        std::string insertQuery =
-            "INSERT INTO users (type, identity_number, name, date_of_issue, "
-            "date_of_expiry, address) "
-            "VALUES ($1, $2, $3, $4, $5, $6)";
+        // Thread-safe database access
+        std::lock_guard<std::mutex> lock(db_mutex);
 
-        db_->exec(insertQuery, {type, identityNumber, name, dateOfIssue,
-                                dateOfExpiry, address});
+        // Use utility function to build insert query
+        std::string query = ekyc_utils::build_insert_sql(
+            "users",
+            {"type", "identity_number", "name", "date_of_issue",
+             "date_of_expiry", "address"},
+            {type, identityNumber, name, dateOfIssue, dateOfExpiry, address});
+
+        db_->exec(query);
 
         Log.info_fast(ShardId, "User successfully added: {} {} ({})", name,
                       identityNumber, type);

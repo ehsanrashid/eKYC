@@ -6,6 +6,11 @@
 
 #include "helper.h"
 
+// Add message types include:
+
+#include "helper.h"
+#include "message_types.h"
+
 eKYCEngine::eKYCEngine() noexcept
     : running_(false),
       packetsReceived_(0),
@@ -140,107 +145,20 @@ void eKYCEngine::process_shard_messages(uint8_t shardId) noexcept {
 void eKYCEngine::process_identity_message(IdentityData &identity,
                                           uint8_t shardId) noexcept {
     try {
-        Log.info_fast(shardId,
-                      "Processing identity message for: {} {} (msg: {})",
-                      identity.name, identity.id, identity.msg);
+        // Log processed message
+        Log.info_fast(shardId, "Processing: {} {} ({})", identity.name,
+                      identity.id, identity.msg);
 
         std::string msgType = identity.msg;
         bool isVerified = string_to_bool(identity.verified);
 
-        // Check if this is an "Identity Verification Request" with
-        // verified=false
-        if (msgType == "Identity Verification Request" && !isVerified) {
-            std::string name = identity.name;
-            std::string id = identity.id;
-
-            Log.info_fast(shardId,
-                          "Processing Identity Verification Request for: {} {}",
-                          name, id);
-
-            // Invoke verification method
-            bool userExist = messageHandler_.exist_user(id, name);
-
-            if (userExist) {
-                Log.info_fast(shardId, "Verification successful for {} {}",
-                              name, id);
-                // Create response with verified=true
-                my::app::messages::IdentityMessage responseIdentity =
-                    create_response_message(identity, true, shardId);
-                messaging_->sendResponse(responseIdentity);
-            } else {
-                Log.info_fast(shardId, "Verification failed for {} {}", name,
-                              id);
-                // Create response with verified=false
-                my::app::messages::IdentityMessage responseIdentity =
-                    create_response_message(identity, false, shardId);
-                messaging_->sendResponse(responseIdentity);
-            }
+        // Handle verification request
+        if (ekyc_message::is_verification_request(msgType) && !isVerified) {
+            handle_verification_request(identity, shardId);
         }
-        // Check if this is an "Add User in System" request with verified=false
-        else if (msgType == "Add User in System" && !isVerified) {
-            std::string name = identity.name;
-            std::string id = identity.id;
-
-            Log.info_fast(shardId,
-                          "Processing Add User in System request for: {} {}",
-                          name, id);
-
-            // Create a proper SBE message for the database operation
-            std::vector<uint8_t> raw_buffer(
-                my::app::messages::MessageHeader::encodedLength() +
-                my::app::messages::IdentityMessage::sbeBlockLength() +
-                identity.msg.size() + identity.type.size() +
-                identity.id.size() + identity.name.size() +
-                identity.dateOfIssue.size() + identity.dateOfExpiry.size() +
-                identity.address.size() + identity.verified.size() +
-                sizeof(std::int64_t));  // Add padding
-
-            my::app::messages::MessageHeader header_encoder;
-            header_encoder
-                .wrap(reinterpret_cast<char *>(raw_buffer.data()), 0, 0,
-                      raw_buffer.size())
-                .blockLength(
-                    my::app::messages::IdentityMessage::sbeBlockLength())
-                .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
-                .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
-                .version(
-                    my::app::messages::IdentityMessage::sbeSchemaVersion());
-
-            my::app::messages::IdentityMessage identity_encoder;
-            identity_encoder.wrapForEncode(
-                reinterpret_cast<char *>(raw_buffer.data()),
-                my::app::messages::MessageHeader::encodedLength(),
-                raw_buffer.size());
-
-            // Set the identity data
-            identity_encoder.msg().putCharVal(identity.msg);
-            identity_encoder.type().putCharVal(identity.type);
-            identity_encoder.id().putCharVal(identity.id);
-            identity_encoder.name().putCharVal(identity.name);
-            identity_encoder.dateOfIssue().putCharVal(identity.dateOfIssue);
-            identity_encoder.dateOfExpiry().putCharVal(identity.dateOfExpiry);
-            identity_encoder.address().putCharVal(identity.address);
-            identity_encoder.verified().putCharVal(identity.verified);
-
-            // Pass the encoded message directly to the handler
-            bool identityAdded = messageHandler_.add_identity(identity_encoder);
-
-            if (identityAdded) {
-                Log.info_fast(shardId, "User addition successful for {} {}",
-                              name, id);
-                // Send back response with verified=true (user added
-                // successfully)
-                my::app::messages::IdentityMessage responseIdentity =
-                    create_response_message(identity, true, shardId);
-                messaging_->sendResponse(responseIdentity);
-            } else {
-                Log.info_fast(shardId, "User addition failed for {} {}", name,
-                              id);
-                // Send back response with verified=false (user addition failed)
-                my::app::messages::IdentityMessage responseIdentity =
-                    create_response_message(identity, false, shardId);
-                messaging_->sendResponse(responseIdentity);
-            }
+        // Handle add user request
+        else if (ekyc_message::is_add_user_request(msgType) && !isVerified) {
+            handle_add_user_request(identity, shardId);
         } else if (isVerified) {
             Log.info_fast(shardId, "Identity already verified: {}",
                           identity.name);
@@ -258,8 +176,8 @@ void eKYCEngine::process_identity_message(IdentityData &identity,
 my::app::messages::IdentityMessage eKYCEngine::create_response_message(
     const IdentityData &original, bool verified, uint8_t shardId) noexcept {
     try {
-        // Calculate exact buffer size needed
-        std::string responseMsg = "Identity Verification Response";
+        // Use constants instead of magic strings
+        std::string responseMsg = ekyc_message::get_response_message();
         std::string responseVerified = verified ? "true" : "false";
 
         // Calculate proper size including all SBE string headers
@@ -335,4 +253,68 @@ my::app::messages::IdentityMessage eKYCEngine::create_response_message(
 
         return default_response;
     }
+}
+
+void eKYCEngine::handle_verification_request(const IdentityData &identity,
+                                             uint8_t shardId) noexcept {
+    Log.info_fast(shardId, "Processing verification for: {} {}", identity.name,
+                  identity.id);
+
+    bool userExist = messageHandler_.exist_user(identity.id, identity.name);
+
+    Log.info_fast(shardId, "Verification {}: {} {}",
+                  userExist ? "successful" : "failed", identity.name,
+                  identity.id);
+
+    auto responseIdentity =
+        create_response_message(identity, userExist, shardId);
+    messaging_->sendResponse(responseIdentity);
+}
+
+void eKYCEngine::handle_add_user_request(const IdentityData &identity,
+                                         uint8_t shardId) noexcept {
+    Log.info_fast(shardId, "Processing add user for: {} {}", identity.name,
+                  identity.id);
+
+    // Create SBE message for database operation (simplified)
+    std::vector<uint8_t> raw_buffer(
+        my::app::messages::MessageHeader::encodedLength() +
+        my::app::messages::IdentityMessage::sbeBlockLength() +
+        512);  // Fixed size for simplicity
+
+    my::app::messages::MessageHeader header_encoder;
+    header_encoder
+        .wrap(reinterpret_cast<char *>(raw_buffer.data()), 0, 0,
+              raw_buffer.size())
+        .blockLength(my::app::messages::IdentityMessage::sbeBlockLength())
+        .templateId(my::app::messages::IdentityMessage::sbeTemplateId())
+        .schemaId(my::app::messages::IdentityMessage::sbeSchemaId())
+        .version(my::app::messages::IdentityMessage::sbeSchemaVersion());
+
+    my::app::messages::IdentityMessage identity_encoder;
+    identity_encoder.wrapForEncode(
+        reinterpret_cast<char *>(raw_buffer.data()),
+        my::app::messages::MessageHeader::encodedLength(), raw_buffer.size());
+
+    // Set identity data
+    identity_encoder.msg().putCharVal(identity.msg);
+    identity_encoder.type().putCharVal(identity.type);
+    identity_encoder.id().putCharVal(identity.id);
+    identity_encoder.name().putCharVal(identity.name);
+    identity_encoder.dateOfIssue().putCharVal(identity.dateOfIssue);
+    identity_encoder.dateOfExpiry().putCharVal(identity.dateOfExpiry);
+    identity_encoder.address().putCharVal(identity.address);
+    identity_encoder.verified().putCharVal(identity.verified);
+
+    // Add to database
+    bool identityAdded = messageHandler_.add_identity(identity_encoder);
+
+    Log.info_fast(shardId, "User addition {}: {} {}",
+                  identityAdded ? "successful" : "failed", identity.name,
+                  identity.id);
+
+    // Send response
+    auto responseIdentity =
+        create_response_message(identity, identityAdded, shardId);
+    messaging_->sendResponse(responseIdentity);
 }

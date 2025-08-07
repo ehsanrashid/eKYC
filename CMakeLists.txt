@@ -37,6 +37,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     /usr/local/include
 )
 
+# Add compile definitions
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_PG_WRAPPER)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     /usr/local/lib/libaeronWrapper.a
     /usr/local/lib/libloggerlib.a

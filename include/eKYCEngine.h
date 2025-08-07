@@ -39,6 +39,13 @@ class eKYCEngine final {
     void process_shard_messages(uint8_t shardId) noexcept;
     void process_identity_message(IdentityData& identity,
                                   uint8_t shardId) noexcept;
+
+    // Helper methods for message processing
+    void handle_verification_request(const IdentityData& identity,
+                                     uint8_t shardId) noexcept;
+    void handle_add_user_request(const IdentityData& identity,
+                                 uint8_t shardId) noexcept;
+
     my::app::messages::IdentityMessage create_response_message(
         const IdentityData& original, bool verified, uint8_t shardId) noexcept;
 

@@ -9,7 +9,7 @@
 #include "pg_wrapper.h"
 
 extern LoggerWrapper Log;
-extern const int shard_id;
+extern const int ShardId;
 // Forward declaration
 namespace messages {
 class IdentityMessage;

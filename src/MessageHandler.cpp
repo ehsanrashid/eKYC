@@ -11,17 +11,17 @@
 namespace {
 
 void log_identity(messages::IdentityMessage &identity) {
-    Log.info_fast(shard_id, "msg: {}", identity.msg().getCharValAsString());
-    Log.info_fast(shard_id, "type: {}", identity.type().getCharValAsString());
-    Log.info_fast(shard_id, "id: {}", identity.id().getCharValAsString());
-    Log.info_fast(shard_id, "name: {}", identity.name().getCharValAsString());
-    Log.info_fast(shard_id, "dateOfIssue: {}",
+    Log.info_fast(ShardId, "msg: {}", identity.msg().getCharValAsString());
+    Log.info_fast(ShardId, "type: {}", identity.type().getCharValAsString());
+    Log.info_fast(ShardId, "id: {}", identity.id().getCharValAsString());
+    Log.info_fast(ShardId, "name: {}", identity.name().getCharValAsString());
+    Log.info_fast(ShardId, "dateOfIssue: {}",
                   identity.dateOfIssue().getCharValAsString());
-    Log.info_fast(shard_id, "dateOfExpiry: {}",
+    Log.info_fast(ShardId, "dateOfExpiry: {}",
                   identity.dateOfExpiry().getCharValAsString());
-    Log.info_fast(shard_id, "address: {}",
+    Log.info_fast(ShardId, "address: {}",
                   identity.address().getCharValAsString());
-    Log.info_fast(shard_id, "verified: {}",
+    Log.info_fast(ShardId, "verified: {}",
                   identity.verified().getCharValAsString());
 }
 
@@ -31,16 +31,16 @@ MessageHandler::MessageHandler() noexcept {
     try {
         db_ = std::make_unique<pg_wrapper::Database>(
             "localhost", "5432", "ekycdb", "huzaifa", "3214");
-        Log.info_fast(shard_id, "Connected to PostGreSQL");
+        Log.info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
-        Log.info_fast(shard_id, "Error: {}", e.what());
+        Log.info_fast(ShardId, "Error: {}", e.what());
     }
 }
 
 MessageHandler::~MessageHandler() noexcept {
     if (db_) {
         db_->close();
-        Log.info_fast(shard_id, "PostGreSQL connection closed!");
+        Log.info_fast(ShardId, "PostGreSQL connection closed!");
     }
 }
 
@@ -73,7 +73,7 @@ std::vector<char> MessageHandler::respond(
             std::string name = identity.name().getCharValAsString();
             std::string id = identity.id().getCharValAsString();
 
-            Log.info_fast(shard_id,
+            Log.info_fast(ShardId,
                           "Processing Identity Verification Request for: {} {}",
                           name, id);
 
@@ -81,12 +81,12 @@ std::vector<char> MessageHandler::respond(
             bool userExist = exist_user(id, name);
 
             if (userExist) {
-                Log.info_fast(shard_id, "Verification successful for {} {}",
+                Log.info_fast(ShardId, "Verification successful for {} {}",
                               name, id);
                 // Send back verified message with verified=true
                 buffer = get_buffer(identity, true);
             } else {
-                Log.info_fast(shard_id, "Verification failed for {} {}", name,
+                Log.info_fast(ShardId, "Verification failed for {} {}", name,
                               id);
                 // Send back message with verified=false
                 buffer = get_buffer(identity, false);
@@ -97,7 +97,7 @@ std::vector<char> MessageHandler::respond(
             std::string name = identity.name().getCharValAsString();
             std::string id = identity.id().getCharValAsString();
 
-            Log.info_fast(shard_id,
+            Log.info_fast(ShardId,
                           "Processing Add User in System request for: {} {}",
                           name, id);
 
@@ -105,27 +105,27 @@ std::vector<char> MessageHandler::respond(
             bool identityAdded = add_identity(identity);
 
             if (identityAdded) {
-                Log.info_fast(shard_id, "User addition successful for {} {}",
+                Log.info_fast(ShardId, "User addition successful for {} {}",
                               name, id);
                 // Send back response with verified=true (user added
                 // successfully)
                 buffer = get_buffer(identity, true);
             } else {
-                Log.info_fast(shard_id, "User addition failed for {} {}", name,
+                Log.info_fast(ShardId, "User addition failed for {} {}", name,
                               id);
                 // Send back response with verified=false (user addition failed)
                 buffer = get_buffer(identity, false);
             }
         } else if (isVerified) {
-            Log.info_fast(shard_id, "Identity already verified: {}",
+            Log.info_fast(ShardId, "Identity already verified: {}",
                           identity.name().getCharValAsString());
         } else {
-            Log.info_fast(shard_id, "Message type '{}' - no action needed",
+            Log.info_fast(ShardId, "Message type '{}' - no action needed",
                           msgType);
         }
 
     } else {
-        Log.error_fast(shard_id, "[Decoder] Unexpected template ID: {}",
+        Log.error_fast(ShardId, "[Decoder] Unexpected template ID: {}",
                        msgHeader.templateId());
     }
     return buffer;
@@ -135,7 +135,7 @@ std::vector<char> MessageHandler::respond(
 bool MessageHandler::exist_user(const std::string &identityNumber,
                                 const std::string &name) noexcept {
     if (!db_) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Database connection not available for user check");
         return false;
     }
@@ -150,14 +150,14 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 
         bool exists = !result.empty();
 
-        Log.info_fast(shard_id,
+        Log.info_fast(ShardId,
                       exists ? "Verified: {} {} found in database"
                              : "NOT verified: {} {} not found in database",
                       identityNumber, name);
 
         return exists;
     } catch (const pg_wrapper::DatabaseError &e) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Database query error during user existence check: {}",
                        e.what());
         return false;
@@ -168,7 +168,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 bool MessageHandler::add_identity(
     messages::IdentityMessage &identity) noexcept {
     if (!db_) {
-        Log.error_fast(shard_id,
+        Log.error_fast(ShardId,
                        "Database connection not available for adding user");
         return false;
     }
@@ -181,19 +181,19 @@ bool MessageHandler::add_identity(
         std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
         std::string address = identity.address().getCharValAsString();
 
-        Log.info_fast(shard_id,
+        Log.info_fast(ShardId,
                       "Adding user to system: name={}, id={}, type={}", name,
                       identityNumber, type);
 
         // Check if user already exists using the reusable method
         if (exist_user(identityNumber, name)) {
-            Log.info_fast(shard_id, "User already exists in system: {} {} ({})",
+            Log.info_fast(ShardId, "User already exists in system: {} {} ({})",
                           name, identityNumber, type);
             return false;  // User already exists, don't add duplicate
         }
 
         Log.info_fast(
-            shard_id,
+            ShardId,
             "User not found in system, proceeding with addition: {} {}", name,
             identityNumber);
 
@@ -207,16 +207,16 @@ bool MessageHandler::add_identity(
 
         db_->exec(insertQuery);
 
-        Log.info_fast(shard_id, "User successfully added to system: {} {} ({})",
+        Log.info_fast(ShardId, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);
 
         return true;
     } catch (const pg_wrapper::DatabaseError &e) {
-        Log.error_fast(shard_id, "Database error while adding user: {}",
+        Log.error_fast(ShardId, "Database error while adding user: {}",
                        e.what());
         return false;
     } catch (const std::exception &e) {
-        Log.error_fast(shard_id, "Error adding user to system: {}", e.what());
+        Log.error_fast(ShardId, "Error adding user to system: {}", e.what());
         return false;
     }
 }
@@ -261,7 +261,7 @@ std::vector<char> MessageHandler::get_buffer(
             originalIdentity.address().getCharValAsString());
         identity.verified().putCharVal(verificationResult ? "true" : "false");
     } catch (const std::exception &e) {
-        Log.error_fast(shard_id, "Error sending response: {}", e.what());
+        Log.error_fast(ShardId, "Error sending response: {}", e.what());
     }
     return buffer;
 }

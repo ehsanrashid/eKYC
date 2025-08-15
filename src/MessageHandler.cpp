@@ -49,17 +49,16 @@ std::vector<char> MessageHandler::respond(
     std::vector<char> buffer;
 
     messages::MessageHeader msgHeader;
-    msgHeader.wrap(
-        reinterpret_cast<char *>(const_cast<uint8_t *>(fragmentData.buffer)), 0,
-        0, fragmentData.length);
+    msgHeader.wrap(reinterpret_cast<char *>(fragmentData.atomicBuffer.buffer()),
+                   0, 0, fragmentData.length);
     size_t offset = msgHeader.encodedLength();
 
     if (msgHeader.templateId() == messages::IdentityMessage::sbeTemplateId()) {
         messages::IdentityMessage identity;
-        identity.wrapForDecode(reinterpret_cast<char *>(
-                                   const_cast<uint8_t *>(fragmentData.buffer)),
-                               offset, msgHeader.blockLength(),
-                               msgHeader.version(), fragmentData.length);
+        identity.wrapForDecode(
+            reinterpret_cast<char *>(fragmentData.atomicBuffer.buffer()),
+            offset, msgHeader.blockLength(), msgHeader.version(),
+            fragmentData.length);
 
         log_identity(identity);
 

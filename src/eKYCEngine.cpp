@@ -65,6 +65,6 @@ void eKYCEngine::send_response(std::vector<char> &buffer) noexcept {
         Log.info_fast(ShardId, "Response sent successfully");
     } else {
         Log.error_fast(ShardId, "Failed to send response: {}",
-                       static_cast<int>(result));
+                       pubresult_to_string(result));
     }
 }

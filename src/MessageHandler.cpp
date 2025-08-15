@@ -3,6 +3,7 @@
 #include <exception>
 #include <iostream>
 
+#include "Config.h"
 #include "helper.h"
 #include "messages/Char64str.h"
 #include "messages/IdentityMessage.h"
@@ -28,9 +29,11 @@ void log_identity(messages::IdentityMessage &identity) {
 }  // namespace
 
 MessageHandler::MessageHandler() noexcept {
+    auto &cfg = Config::get();
     try {
-        _db = std::make_unique<pg_wrapper::Database>(
-            "localhost", "5432", "ekycdb", "huzaifa", "3214");
+        db_ = std::make_unique<pg_wrapper::Database>(
+            cfg.DB_HOST, std::to_string(cfg.DB_PORT), cfg.DB_NAME, cfg.DB_USER,
+            cfg.DB_PASSWORD);
         Log.info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
         Log.info_fast(ShardId, "Error: {}", e.what());
@@ -38,8 +41,8 @@ MessageHandler::MessageHandler() noexcept {
 }
 
 MessageHandler::~MessageHandler() noexcept {
-    if (_db) {
-        _db->close();
+    if (db_) {
+        db_->close();
         Log.info_fast(ShardId, "PostGreSQL connection closed!");
     }
 }
@@ -49,16 +52,17 @@ std::vector<char> MessageHandler::respond(
     std::vector<char> buffer;
 
     messages::MessageHeader msgHeader;
-    msgHeader.wrap(reinterpret_cast<char *>(fragmentData.atomicBuffer.buffer()),
+    msgHeader.wrap(reinterpret_cast<char *>(const_cast<uint8_t *>(
+                       fragmentData.atomicBuffer.buffer())),
                    0, 0, fragmentData.length);
     size_t offset = msgHeader.encodedLength();
 
     if (msgHeader.templateId() == messages::IdentityMessage::sbeTemplateId()) {
         messages::IdentityMessage identity;
-        identity.wrapForDecode(
-            reinterpret_cast<char *>(fragmentData.atomicBuffer.buffer()),
-            offset, msgHeader.blockLength(), msgHeader.version(),
-            fragmentData.length);
+        identity.wrapForDecode(reinterpret_cast<char *>(const_cast<uint8_t *>(
+                                   fragmentData.atomicBuffer.buffer())),
+                               offset, msgHeader.blockLength(),
+                               msgHeader.version(), fragmentData.length);
 
         log_identity(identity);
 
@@ -133,7 +137,7 @@ std::vector<char> MessageHandler::respond(
 // Check if user exists in database
 bool MessageHandler::exist_user(const std::string &identityNumber,
                                 const std::string &name) noexcept {
-    if (!_db) {
+    if (!db_) {
         Log.error_fast(ShardId,
                        "Database connection not available for user check");
         return false;
@@ -145,7 +149,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto result = _db->exec(selectQuery);
+        auto result = db_->exec(selectQuery);
 
         bool exists = !result.empty();
 
@@ -166,7 +170,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 // Add user to database
 bool MessageHandler::add_identity(
     messages::IdentityMessage &identity) noexcept {
-    if (!_db) {
+    if (!db_) {
         Log.error_fast(ShardId,
                        "Database connection not available for adding user");
         return false;
@@ -203,7 +207,7 @@ bool MessageHandler::add_identity(
             type + "', '" + identityNumber + "', '" + name + "', '" +
             dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        _db->exec(insertQuery);
+        db_->exec(insertQuery);
 
         Log.info_fast(ShardId, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);

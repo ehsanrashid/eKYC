@@ -3,15 +3,25 @@
 #include <exception>
 #include <iostream>
 
+#include "Config.h"
+
 eKYCEngine::eKYCEngine() noexcept
     : _running(false), _packetsReceived(0), _messageHandler() {
     try {
-        _aeron = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
+        auto &cfg = Config::get();
+        _aeron = std::make_unique<aeron_wrapper::Aeron>(cfg.AERON_DIR);
         Log.info_fast(ShardId, "Connected to Aeron Media Driver...");
-        _subscription = _aeron->create_subscription(SubscriptionChannel,  //
-                                                    SubscriptionStreamId);
-        _publication = _aeron->create_publication(PublicationChannel,  //
-                                                  PublicationStreamId);
+
+        std::string subscriptionChannel =
+            "aeron:" + cfg.AERON_PROTOCOL + "?endpoint=" + cfg.SUBSCRIPTION_IP +
+            ":" + std::to_string(cfg.SUBSCRIPTION_PORT);
+        _subscription = _aeron->create_subscription(subscriptionChannel,  //
+                                                    cfg.SUBSCRIPTION_STREAM_ID);
+        std::string publicationChannel =
+            "aeron:" + cfg.AERON_PROTOCOL + "?endpoint=" + cfg.PUBLICATION_IP +
+            ":" + std::to_string(cfg.PUBLICATION_PORT);
+        _publication = _aeron->create_publication(publicationChannel,  //
+                                                  cfg.PUBLICATION_STREAM_ID);
 
         _running = true;
     } catch (const std::exception &e) {

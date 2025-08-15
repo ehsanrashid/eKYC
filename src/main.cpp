@@ -8,12 +8,13 @@
 #include <thread>
 
 // Local Headers include
+#include "Config.h"
 #include "eKYCEngine.h"
 #include "loggerwrapper.h"
 
-const int ShardId = 0;
+const int ShardId = Config::get().MAIN_THREAD_SHARD_ID;
 
-LoggerWrapper Log(1, "../logs/ekyc", 0);
+LoggerWrapper Log(1, Config::get().LOG_DIR, 0);
 
 int main(int argc, char** argv) {
     Log.set_log_level(ShardId, LogLevel::DEBUG);

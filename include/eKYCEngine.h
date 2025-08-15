@@ -15,15 +15,15 @@ extern LoggerWrapper Log;
 
 class eKYCEngine final {
    public:
-    static constexpr const char *AeronDir = "";
+    // static constexpr const char *AeronDir = "";
 
-    static constexpr const char *SubscriptionChannel =
-        "aeron:ipc?endpoint=0.0.0.0:50000";
-    static constexpr int SubscriptionStreamId = 1001;
+    // static constexpr const char *SubscriptionChannel =
+    //     "aeron:ipc?endpoint=0.0.0.0:50000";
+    // static constexpr int SubscriptionStreamId = 1001;
 
-    static constexpr const char *PublicationChannel =
-        "aeron:ipc?endpoint=anas.eagri.com:10001";
-    static constexpr int PublicationStreamId = 1001;
+    // static constexpr const char *PublicationChannel =
+    //     "aeron:ipc?endpoint=anas.eagri.com:10001";
+    // static constexpr int PublicationStreamId = 1001;
 
     eKYCEngine() noexcept;
 

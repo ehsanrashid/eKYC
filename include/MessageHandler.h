@@ -32,5 +32,5 @@ class MessageHandler final {
                                  bool verificationResult) noexcept;
 
    private:
-    std::unique_ptr<pg_wrapper::Database> _db;
+    std::unique_ptr<pg_wrapper::Database> db_;
 };

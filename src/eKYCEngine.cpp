@@ -4,16 +4,16 @@
 #include <iostream>
 
 eKYCEngine::eKYCEngine() noexcept
-    : running_(false), packetsReceived_(0), messageHandler_() {
+    : _running(false), _packetsReceived(0), _messageHandler() {
     try {
-        aeron_ = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
+        _aeron = std::make_unique<aeron_wrapper::Aeron>(AeronDir);
         Log.info_fast(ShardId, "Connected to Aeron Media Driver...");
-        subscription_ = aeron_->create_subscription(SubscriptionChannel,  //
+        _subscription = _aeron->create_subscription(SubscriptionChannel,  //
                                                     SubscriptionStreamId);
-        publication_ = aeron_->create_publication(PublicationChannel,  //
+        _publication = _aeron->create_publication(PublicationChannel,  //
                                                   PublicationStreamId);
 
-        running_ = true;
+        _running = true;
     } catch (const std::exception &e) {
         Log.info_fast(ShardId, "Error: {}", e.what());
     }
@@ -22,32 +22,32 @@ eKYCEngine::eKYCEngine() noexcept
 eKYCEngine::~eKYCEngine() noexcept { stop(); }
 
 void eKYCEngine::start() noexcept {
-    if (!running_) return;
+    if (!_running) return;
 
     Log.info_fast(ShardId, "Starting eKYC engine...");
     // Start background msg processing
-    backgroundPoller_ = subscription_->start_background_polling(
+    _backgroundPoller = _subscription->start_background_polling(
         [this](const aeron_wrapper::FragmentData &fragmentData) {
             process_message(fragmentData);
         });
 }
 
 void eKYCEngine::stop() noexcept {
-    if (!running_) return;
+    if (!_running) return;
 
-    if (backgroundPoller_) {
-        backgroundPoller_->stop();
+    if (_backgroundPoller) {
+        _backgroundPoller->stop();
     }
 
-    running_ = false;
+    _running = false;
     Log.info_fast(ShardId, "eKYC engine stopped.");
 }
 
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData &fragmentData) noexcept {
-    ++packetsReceived_;
+    ++_packetsReceived;
     try {
-        auto buffer = messageHandler_.respond(fragmentData);
+        auto buffer = _messageHandler.respond(fragmentData);
         if (!buffer.empty()) {
             send_response(buffer);
         }
@@ -57,9 +57,9 @@ void eKYCEngine::process_message(
 }
 
 void eKYCEngine::send_response(std::vector<char> &buffer) noexcept {
-    if (!publication_) return;
+    if (!_publication) return;
 
-    auto result = publication_->offer(
+    auto result = _publication->offer(
         reinterpret_cast<const uint8_t *>(buffer.data()), buffer.size());
     if (result == aeron_wrapper::PublicationResult::SUCCESS) {
         Log.info_fast(ShardId, "Response sent successfully");

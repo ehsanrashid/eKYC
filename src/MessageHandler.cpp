@@ -29,7 +29,7 @@ void log_identity(messages::IdentityMessage &identity) {
 
 MessageHandler::MessageHandler() noexcept {
     try {
-        db_ = std::make_unique<pg_wrapper::Database>(
+        _db = std::make_unique<pg_wrapper::Database>(
             "localhost", "5432", "ekycdb", "huzaifa", "3214");
         Log.info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
@@ -38,8 +38,8 @@ MessageHandler::MessageHandler() noexcept {
 }
 
 MessageHandler::~MessageHandler() noexcept {
-    if (db_) {
-        db_->close();
+    if (_db) {
+        _db->close();
         Log.info_fast(ShardId, "PostGreSQL connection closed!");
     }
 }
@@ -134,7 +134,7 @@ std::vector<char> MessageHandler::respond(
 // Check if user exists in database
 bool MessageHandler::exist_user(const std::string &identityNumber,
                                 const std::string &name) noexcept {
-    if (!db_) {
+    if (!_db) {
         Log.error_fast(ShardId,
                        "Database connection not available for user check");
         return false;
@@ -146,7 +146,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto result = db_->exec(selectQuery);
+        auto result = _db->exec(selectQuery);
 
         bool exists = !result.empty();
 
@@ -167,7 +167,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 // Add user to database
 bool MessageHandler::add_identity(
     messages::IdentityMessage &identity) noexcept {
-    if (!db_) {
+    if (!_db) {
         Log.error_fast(ShardId,
                        "Database connection not available for adding user");
         return false;
@@ -204,7 +204,7 @@ bool MessageHandler::add_identity(
             type + "', '" + identityNumber + "', '" + name + "', '" +
             dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        db_->exec(insertQuery);
+        _db->exec(insertQuery);
 
         Log.info_fast(ShardId, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);

@@ -39,14 +39,14 @@ class eKYCEngine final {
     void send_response(std::vector<char> &buffer) noexcept;
 
     // Aeron components
-    std::unique_ptr<aeron_wrapper::Aeron> aeron_;
-    std::unique_ptr<aeron_wrapper::Subscription> subscription_;
-    std::unique_ptr<aeron_wrapper::Publication> publication_;
+    std::unique_ptr<aeron_wrapper::Aeron> _aeron;
+    std::unique_ptr<aeron_wrapper::Subscription> _subscription;
+    std::unique_ptr<aeron_wrapper::Publication> _publication;
     std::unique_ptr<aeron_wrapper::Subscription::BackgroundPoller>
-        backgroundPoller_;
+        _backgroundPoller;
 
-    std::atomic<bool> running_;
-    std::uint64_t packetsReceived_;
+    std::atomic<bool> _running;
+    std::uint64_t _packetsReceived;
 
-    MessageHandler messageHandler_;
+    MessageHandler _messageHandler;
 };

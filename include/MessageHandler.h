@@ -6,10 +6,9 @@
 #include <string>
 #include <vector>
 
+#include "DatabaseFactory.h"
 #include "aeron_wrapper.h"
 #include "loggerwrapper.h"
-#include "pg_wrapper.h"
-
 extern const int ShardId;
 extern LoggerWrapper Log;
 // Forward declaration
@@ -32,5 +31,5 @@ class MessageHandler final {
                                  bool verificationResult) noexcept;
 
    private:
-    std::unique_ptr<pg_wrapper::Database> _db;
+    DatabaseConfig _pgConfig;
 };

@@ -19,6 +19,9 @@ LoggerWrapper Log(1, Config::get().LOG_DIR, 0);
 int main(int argc, char** argv) {
     Log.set_log_level(ShardId, LogLevel::DEBUG);
 
+    // Initialize the factory with default database types
+    DatabaseFactory::initialize();
+
     std::atomic<bool> keepRunning{true};
     // Start input monitoring thread
     std::thread inputThread([&keepRunning]() {

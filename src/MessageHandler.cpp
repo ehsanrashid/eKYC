@@ -4,6 +4,9 @@
 #include <iostream>
 
 #include "Config.h"
+#include "DatabaseFactory.h"
+#include "DatabaseManager.h"
+#include "PostgreDatabase.h"
 #include "helper.h"
 #include "messages/Char64str.h"
 #include "messages/IdentityMessage.h"
@@ -30,22 +33,17 @@ void log_identity(messages::IdentityMessage &identity) {
 
 MessageHandler::MessageHandler() noexcept {
     auto &cfg = Config::get();
+
     try {
-        _db = std::make_unique<pg_wrapper::Database>(
-            cfg.DB_HOST, std::to_string(cfg.DB_PORT), cfg.DB_NAME, cfg.DB_USER,
-            cfg.DB_PASSWORD);
+        _pgConfig = DatabaseConfig(cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME,
+                                   cfg.DB_USER, cfg.DB_PASSWORD);
         Log.info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
         Log.info_fast(ShardId, "Error: {}", e.what());
     }
 }
 
-MessageHandler::~MessageHandler() noexcept {
-    if (_db) {
-        _db->close();
-        Log.info_fast(ShardId, "PostGreSQL connection closed!");
-    }
-}
+MessageHandler::~MessageHandler() noexcept {}
 
 std::vector<char> MessageHandler::respond(
     const aeron_wrapper::FragmentData &fragmentData) noexcept {
@@ -137,21 +135,18 @@ std::vector<char> MessageHandler::respond(
 // Check if user exists in database
 bool MessageHandler::exist_user(const std::string &identityNumber,
                                 const std::string &name) noexcept {
-    if (!_db) {
-        Log.error_fast(ShardId,
-                       "Database connection not available for user check");
-        return false;
-    }
-
     try {
+        auto db = DatabaseFactory::create("postgresql", _pgConfig);
+        DatabaseManager dbManager(std::move(db));
+
         std::string selectQuery =
             "SELECT identity_number, name FROM users WHERE identity_number = "
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto result = _db->exec(selectQuery);
-
-        bool exists = !result.empty();
+        auto result = dbManager->exec(selectQuery);
+        auto pgResult = dynamic_cast<PostgreResult *>(result.get());
+        bool exists = !pgResult->empty();
 
         Log.info_fast(ShardId,
                       exists ? "Verified: {} {} found in database"
@@ -159,7 +154,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
                       identityNumber, name);
 
         return exists;
-    } catch (const pg_wrapper::DatabaseError &e) {
+    } catch (const std::exception &e) {
         Log.error_fast(ShardId,
                        "Database query error during user existence check: {}",
                        e.what());
@@ -170,11 +165,8 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 // Add user to database
 bool MessageHandler::add_identity(
     messages::IdentityMessage &identity) noexcept {
-    if (!_db) {
-        Log.error_fast(ShardId,
-                       "Database connection not available for adding user");
-        return false;
-    }
+    auto db = DatabaseFactory::create("postgresql", _pgConfig);
+    DatabaseManager dbManager(std::move(db));
 
     try {
         std::string type = identity.type().getCharValAsString();
@@ -207,18 +199,15 @@ bool MessageHandler::add_identity(
             type + "', '" + identityNumber + "', '" + name + "', '" +
             dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        _db->exec(insertQuery);
+        dbManager->exec(insertQuery);
 
         Log.info_fast(ShardId, "User successfully added to system: {} {} ({})",
                       name, identityNumber, type);
 
         return true;
-    } catch (const pg_wrapper::DatabaseError &e) {
+    } catch (const std::exception &e) {
         Log.error_fast(ShardId, "Database error while adding user: {}",
                        e.what());
-        return false;
-    } catch (const std::exception &e) {
-        Log.error_fast(ShardId, "Error adding user to system: {}", e.what());
         return false;
     }
 }

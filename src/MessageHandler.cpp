@@ -144,8 +144,9 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto result = dbManager->exec(selectQuery);
-        auto pgResult = dynamic_cast<PostgreResult *>(result.get());
+        // auto result = dbManager->exec(selectQuery);
+        auto pgResult =
+            dynamic_cast<PostgreResult *>(dbManager->exec(selectQuery).get());
         bool exists = !pgResult->empty();
 
         Log.info_fast(ShardId,

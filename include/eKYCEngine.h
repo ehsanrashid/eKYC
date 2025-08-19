@@ -1,57 +1,42 @@
 #pragma once
 
 #include <atomic>
+#include <iosfwd>
 #include <memory>
 #include <string>
+#include <vector>
 
+#include "MessageHandler.h"
 #include "aeron_wrapper.h"
 #include "loggerwrapper.h"
-#include "pg_wrapper.h"
 
+extern const int ShardId;
 extern LoggerWrapper Log;
-extern const int shard_id;
-// Forward declaration
-namespace messages {
-class IdentityMessage;
-}
 
-class eKYCEngine {
+class eKYCEngine final {
    public:
-    static constexpr const char *AeronDir = "";
+    eKYCEngine() noexcept;
 
-    static constexpr const char *SubscriptionChannel =
-        "aeron:udp?endpoint=0.0.0.0:50000";
-    static constexpr int SubscriptionStreamId = 1001;
+    ~eKYCEngine() noexcept;
 
-    static constexpr const char *PublicationChannel =
-        "aeron:udp?endpoint=anas.eagri.com:10001";
-    static constexpr int PublicationStreamId = 1001;
+    void start() noexcept;
 
-    eKYCEngine();
-
-    ~eKYCEngine();
-
-    void start();
-
-    void stop();
+    void stop() noexcept;
 
    private:
-    void process_message(const aeron_wrapper::FragmentData &fragmentData);
-    void verify_and_respond(messages::IdentityMessage &identity);
-    void send_response(messages::IdentityMessage &originalIdentity,
-                       bool verificationResult);
-    bool user_exists(const std::string &identityNumber,
-                     const std::string &name);
-    bool add_identity(messages::IdentityMessage &identity);
+    void process_message(
+        const aeron_wrapper::FragmentData &fragmentData) noexcept;
+    void send_response(std::vector<char> &buffer) noexcept;
 
     // Aeron components
-    std::unique_ptr<aeron_wrapper::Aeron> aeron_;
-    std::unique_ptr<aeron_wrapper::Subscription> subscription_;
-    std::unique_ptr<aeron_wrapper::Publication> publication_;
+    std::unique_ptr<aeron_wrapper::Aeron> _aeron;
+    std::unique_ptr<aeron_wrapper::Subscription> _subscription;
+    std::unique_ptr<aeron_wrapper::Publication> _publication;
     std::unique_ptr<aeron_wrapper::Subscription::BackgroundPoller>
-        backgroundPoller_;
-    long int receiving_packets_ = 0;
-    std::atomic<bool> running_;
+        _backgroundPoller;
 
-    std::unique_ptr<pg_wrapper::Database> db_;
+    std::atomic<bool> _running;
+    std::uint64_t _packetsReceived;
+
+    MessageHandler _messageHandler;
 };

@@ -33,7 +33,7 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 # Include Aeron headers and project includes
 target_include_directories(${PROJECT_NAME} PRIVATE 
-    ${CMAKE_SOURCE_DIR}/include    
+    ${CMAKE_SOURCE_DIR}/include
     /usr/local/include
 )
 

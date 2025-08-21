@@ -39,7 +39,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     /usr/local/lib/libaeronWrapper.a
-    /usr/local/lib/libloggerlib.a
+    /usr/local/lib/libupdtd_logger_quill.a
     /usr/local/lib/libDbFactory.a
     aeron_client
     aeron_driver

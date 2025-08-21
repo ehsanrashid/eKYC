@@ -8,9 +8,10 @@
 
 #include "DatabaseFactory.h"
 #include "aeron_wrapper.h"
-#include "loggerwrapper.h"
+#include "loggerlib.h"
+
 extern const int ShardId;
-extern LoggerWrapper Log;
+
 // Forward declaration
 namespace messages {
 class IdentityMessage;

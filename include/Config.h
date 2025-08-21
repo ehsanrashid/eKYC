@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "helper.h"
+
 class Config {
    public:
     // Logging
@@ -39,14 +41,17 @@ class Config {
     int IDLE_STRATEGY_YIELDS;
 
     static Config& get() {
-        static Config instance;
-        return instance;
+        static Config config;
+        return config;
     }
 
    private:
     Config() {
         load("../config.txt");  // Change to your path
     }
+
+    Config(const Config&) = delete;
+    Config& operator=(const Config&) = delete;
 
     void load(const std::string& filename) {
         std::ifstream file(filename);
@@ -72,11 +77,11 @@ class Config {
             trim(key);
             trim(value);
 
-            assignValue(key, value);
+            assign_value(key, value);
         }
     }
 
-    void assignValue(const std::string& key, const std::string& value) {
+    void assign_value(const std::string& key, const std::string& value) {
         if (key == "LOG_DIR")
             LOG_DIR = value;
         else if (key == "ROTATIING_LOG_SIZE")
@@ -120,18 +125,4 @@ class Config {
         else if (key == "IDLE_STRATEGY_YIELDS")
             IDLE_STRATEGY_YIELDS = std::stoi(value);
     }
-
-    static void trim(std::string& s) {
-        s.erase(s.begin(),
-                std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-                    return !std::isspace(ch);
-                }));
-        s.erase(std::find_if(s.rbegin(), s.rend(),
-                             [](unsigned char ch) { return !std::isspace(ch); })
-                    .base(),
-                s.end());
-    }
-
-    Config(const Config&) = delete;
-    Config& operator=(const Config&) = delete;
 };

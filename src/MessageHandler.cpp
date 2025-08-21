@@ -15,24 +15,23 @@
 namespace {
 
 void log_identity(messages::IdentityMessage &identity) {
-    Sharded_Logger::getInstance().info_fast(
-        ShardId, "msg: {}", identity.msg().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(
-        ShardId, "type: {}", identity.type().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(ShardId, "id: {}",
-                                            identity.id().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(
-        ShardId, "name: {}", identity.name().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(
-        ShardId, "dateOfIssue: {}",
-        identity.dateOfIssue().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(
+    ShardedLogger::get().info_fast(ShardId, "msg: {}",
+                                   identity.msg().getCharValAsString());
+    ShardedLogger::get().info_fast(ShardId, "type: {}",
+                                   identity.type().getCharValAsString());
+    ShardedLogger::get().info_fast(ShardId, "id: {}",
+                                   identity.id().getCharValAsString());
+    ShardedLogger::get().info_fast(ShardId, "name: {}",
+                                   identity.name().getCharValAsString());
+    ShardedLogger::get().info_fast(ShardId, "dateOfIssue: {}",
+                                   identity.dateOfIssue().getCharValAsString());
+    ShardedLogger::get().info_fast(
         ShardId, "dateOfExpiry: {}",
         identity.dateOfExpiry().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(
-        ShardId, "address: {}", identity.address().getCharValAsString());
-    Sharded_Logger::getInstance().info_fast(
-        ShardId, "verified: {}", identity.verified().getCharValAsString());
+    ShardedLogger::get().info_fast(ShardId, "address: {}",
+                                   identity.address().getCharValAsString());
+    ShardedLogger::get().info_fast(ShardId, "verified: {}",
+                                   identity.verified().getCharValAsString());
 }
 
 }  // namespace
@@ -43,11 +42,9 @@ MessageHandler::MessageHandler() noexcept {
     try {
         _pgConfig = DatabaseConfig(cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME,
                                    cfg.DB_USER, cfg.DB_PASSWORD);
-        Sharded_Logger::getInstance().info_fast(ShardId,
-                                                "Connected to PostGreSQL");
+        ShardedLogger::get().info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
-        Sharded_Logger::getInstance().error_fast(ShardId, "Error: {}",
-                                                 e.what());
+        ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
     }
 }
 
@@ -82,7 +79,7 @@ std::vector<char> MessageHandler::respond(
             std::string name = identity.name().getCharValAsString();
             std::string id = identity.id().getCharValAsString();
 
-            Sharded_Logger::getInstance().info_fast(
+            ShardedLogger::get().info_fast(
                 ShardId, "Processing Identity Verification Request for: {} {}",
                 name, id);
 
@@ -90,12 +87,12 @@ std::vector<char> MessageHandler::respond(
             bool userExist = exist_user(id, name);
 
             if (userExist) {
-                Sharded_Logger::getInstance().info_fast(
+                ShardedLogger::get().info_fast(
                     ShardId, "Verification successful for {} {}", name, id);
                 // Send back verified message with verified=true
                 buffer = get_buffer(identity, true);
             } else {
-                Sharded_Logger::getInstance().info_fast(
+                ShardedLogger::get().info_fast(
                     ShardId, "Verification failed for {} {}", name, id);
                 // Send back message with verified=false
                 buffer = get_buffer(identity, false);
@@ -106,7 +103,7 @@ std::vector<char> MessageHandler::respond(
             std::string name = identity.name().getCharValAsString();
             std::string id = identity.id().getCharValAsString();
 
-            Sharded_Logger::getInstance().info_fast(
+            ShardedLogger::get().info_fast(
                 ShardId, "Processing Add User in System request for: {} {}",
                 name, id);
 
@@ -114,30 +111,30 @@ std::vector<char> MessageHandler::respond(
             bool identityAdded = add_identity(identity);
 
             if (identityAdded) {
-                Sharded_Logger::getInstance().info_fast(
+                ShardedLogger::get().info_fast(
                     ShardId, "User addition successful for {} {}", name, id);
                 // Send back response with verified=true (user added
                 // successfully)
                 buffer = get_buffer(identity, true);
             } else {
-                Sharded_Logger::getInstance().info_fast(
+                ShardedLogger::get().info_fast(
                     ShardId, "User addition failed for {} {}", name, id);
                 // Send back response with verified=false (user addition failed)
                 buffer = get_buffer(identity, false);
             }
         } else if (isVerified) {
-            Sharded_Logger::getInstance().info_fast(
+            ShardedLogger::get().info_fast(
                 ShardId, "Identity already verified: {}",
                 identity.name().getCharValAsString());
         } else {
-            Sharded_Logger::getInstance().info_fast(
+            ShardedLogger::get().info_fast(
                 ShardId, "Message type '{}' - no action needed", msgType);
         }
 
     } else {
-        Sharded_Logger::getInstance().error_fast(
-            ShardId, "[Decoder] Unexpected template ID: {}",
-            msgHeader.templateId());
+        ShardedLogger::get().error_fast(ShardId,
+                                        "[Decoder] Unexpected template ID: {}",
+                                        msgHeader.templateId());
     }
     return buffer;
 }
@@ -158,7 +155,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
             dynamic_cast<PostgreResult *>(dbManager->exec(selectQuery).get());
         bool exists = !pgResult->empty();
 
-        Sharded_Logger::getInstance().info_fast(
+        ShardedLogger::get().info_fast(
             ShardId,
             exists ? "Verified: {} {} found in database"
                    : "NOT verified: {} {} not found in database",
@@ -166,7 +163,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 
         return exists;
     } catch (const std::exception &e) {
-        Sharded_Logger::getInstance().error_fast(
+        ShardedLogger::get().error_fast(
             ShardId, "Database query error during user existence check: {}",
             e.what());
         return false;
@@ -187,19 +184,19 @@ bool MessageHandler::add_identity(
         std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
         std::string address = identity.address().getCharValAsString();
 
-        Sharded_Logger::getInstance().info_fast(
+        ShardedLogger::get().info_fast(
             ShardId, "Adding user to system: name={}, id={}, type={}", name,
             identityNumber, type);
 
         // Check if user already exists using the reusable method
         if (exist_user(identityNumber, name)) {
-            Sharded_Logger::getInstance().info_fast(
+            ShardedLogger::get().info_fast(
                 ShardId, "User already exists in system: {} {} ({})", name,
                 identityNumber, type);
             return false;  // User already exists, don't add duplicate
         }
 
-        Sharded_Logger::getInstance().info_fast(
+        ShardedLogger::get().info_fast(
             ShardId,
             "User not found in system, proceeding with addition: {} {}", name,
             identityNumber);
@@ -214,13 +211,13 @@ bool MessageHandler::add_identity(
 
         dbManager->exec(insertQuery);
 
-        Sharded_Logger::getInstance().info_fast(
+        ShardedLogger::get().info_fast(
             ShardId, "User successfully added to system: {} {} ({})", name,
             identityNumber, type);
 
         return true;
     } catch (const std::exception &e) {
-        Sharded_Logger::getInstance().error_fast(
+        ShardedLogger::get().error_fast(
             ShardId, "Database error while adding user: {}", e.what());
         return false;
     }
@@ -266,8 +263,8 @@ std::vector<char> MessageHandler::get_buffer(
             originalIdentity.address().getCharValAsString());
         identity.verified().putCharVal(verificationResult ? "true" : "false");
     } catch (const std::exception &e) {
-        Sharded_Logger::getInstance().error_fast(
-            ShardId, "Error sending response: {}", e.what());
+        ShardedLogger::get().error_fast(ShardId, "Error sending response: {}",
+                                        e.what());
     }
     return buffer;
 }

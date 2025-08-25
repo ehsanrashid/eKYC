@@ -9,6 +9,7 @@
 
 // Local Headers include
 #include "Config.h"
+#include "DatabaseFactory.h"
 #include "eKYCEngine.h"
 #include "loggerlib.h"
 

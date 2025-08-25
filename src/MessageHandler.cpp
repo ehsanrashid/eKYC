@@ -5,7 +5,6 @@
 
 #include "Config.h"
 #include "DatabaseFactory.h"
-#include "DatabaseManager.h"
 #include "PostgreDatabase.h"
 #include "helper.h"
 #include "messages/Char64str.h"
@@ -40,8 +39,13 @@ MessageHandler::MessageHandler() noexcept {
     auto &cfg = Config::get();
 
     try {
-        _pgConfig = DatabaseConfig(cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME,
-                                   cfg.DB_USER, cfg.DB_PASSWORD);
+        auto pgConfig = DatabaseConfig(cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME,
+                                       cfg.DB_USER, cfg.DB_PASSWORD);
+        ;
+
+        auto pgDb = DatabaseFactory::create("postgresql", pgConfig);
+        _pgDbManager = DatabaseManager(std::move(pgDb));
+
         ShardedLogger::get().info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
         ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
@@ -141,15 +145,12 @@ std::vector<char> MessageHandler::respond(
 bool MessageHandler::exist_user(const std::string &identityNumber,
                                 const std::string &name) noexcept {
     try {
-        auto db = DatabaseFactory::create("postgresql", _pgConfig);
-        DatabaseManager dbManager(std::move(db));
-
         std::string selectQuery =
             "SELECT identity_number, name FROM users WHERE identity_number = "
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto res = dbManager->exec(selectQuery);
+        auto res = _pgDbManager->exec(selectQuery);
         if (!res) {
             ShardedLogger::get().error_fast(ShardId, "DB exec returned null");
             return false;
@@ -182,9 +183,6 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 // Add user to database
 bool MessageHandler::add_identity(
     messages::IdentityMessage &identity) noexcept {
-    auto db = DatabaseFactory::create("postgresql", _pgConfig);
-    DatabaseManager dbManager(std::move(db));
-
     try {
         std::string type = identity.type().getCharValAsString();
         std::string identityNumber = identity.id().getCharValAsString();
@@ -218,7 +216,7 @@ bool MessageHandler::add_identity(
             type + "', '" + identityNumber + "', '" + name + "', '" +
             dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        dbManager->exec(insertQuery);
+        _pgDbManager->exec(insertQuery);
 
         ShardedLogger::get().info_fast(
             ShardId, "User successfully added to system: {} {} ({})", name,

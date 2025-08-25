@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "DatabaseFactory.h"
+#include "DatabaseManager.h"
 #include "aeron_wrapper.h"
 #include "loggerlib.h"
 
@@ -32,5 +32,5 @@ class MessageHandler final {
                                  bool verificationResult) noexcept;
 
    private:
-    DatabaseConfig _pgConfig;
+    DatabaseManager _pgDbManager;
 };

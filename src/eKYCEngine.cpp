@@ -26,7 +26,8 @@ eKYCEngine::eKYCEngine() noexcept
         _publication = _aeron->create_publication(publicationChannel,  //
                                                   cfg.PUBLICATION_STREAM_ID);
 
-        _ring = std::make_unique<aeron_wrapper::RingBuffer>(1 << 20);
+        _ring = std::make_unique<aeron_wrapper::RingBuffer>(
+            Config::get().MAX_RING_BUFFER_SIZE);
 
         _running = true;
     } catch (const std::exception &e) {

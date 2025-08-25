@@ -41,7 +41,6 @@ MessageHandler::MessageHandler() noexcept {
     try {
         auto pgConfig = DatabaseConfig(cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME,
                                        cfg.DB_USER, cfg.DB_PASSWORD);
-        ;
 
         auto pgDb = DatabaseFactory::create("postgresql", pgConfig);
         _pgDbManager = std::make_unique<DatabaseManager>(std::move(pgDb));

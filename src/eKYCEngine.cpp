@@ -5,7 +5,7 @@
 #include <thread>
 
 #include "Config.h"
-#include "concurrent/logbuffer/Header.h"
+// #include "concurrent/logbuffer/Header.h"
 #include "loggerlib.h"
 
 eKYCEngine::eKYCEngine() noexcept
@@ -74,11 +74,10 @@ void eKYCEngine::consumer_loop() noexcept {
                                                   char *base, int32_t offset,
                                                   int32_t length,
                                                   int32_t capacity) -> bool {
-                aeron::concurrent::AtomicBuffer ab(
-                    reinterpret_cast<std::uint8_t *>(base), capacity);
-                aeron::concurrent::logbuffer::Header hdr(0, 0, nullptr);
-                aeron_wrapper::FragmentData fd{ab, length, offset, hdr};
-                process_message(fd);
+                auto buffer = _messageHandler.respond_raw(base, offset, length);
+                if (!buffer.empty()) {
+                    send_response(buffer);
+                }
                 ++processed;
                 return true;
             });

@@ -55,89 +55,9 @@ MessageHandler::~MessageHandler() noexcept {}
 
 std::vector<char> MessageHandler::respond(
     const aeron_wrapper::FragmentData &fragmentData) noexcept {
-    std::vector<char> buffer;
-
-    messages::MessageHeader msgHeader;
     char *base = reinterpret_cast<char *>(
         const_cast<uint8_t *>(fragmentData.atomicBuffer.buffer()));
-    char *start = base + fragmentData.offset;
-
-    msgHeader.wrap(start, 0, 0, fragmentData.length);
-    size_t offset = msgHeader.encodedLength();
-
-    if (msgHeader.templateId() == messages::IdentityMessage::sbeTemplateId()) {
-        messages::IdentityMessage identity;
-        identity.wrapForDecode(start, offset, msgHeader.blockLength(),
-                               msgHeader.version(), fragmentData.length);
-        log_identity(identity);
-
-        std::string msgType = identity.msg().getCharValAsString();
-        bool isVerified =
-            string_to_bool(identity.verified().getCharValAsString());
-
-        // Check if this is an "Identity Verification Request" with
-        // verified=false
-        if (msgType == "Identity Verification Request" && !isVerified) {
-            std::string name = identity.name().getCharValAsString();
-            std::string id = identity.id().getCharValAsString();
-
-            ShardedLogger::get().info_fast(
-                ShardId, "Processing Identity Verification Request for: {} {}",
-                name, id);
-
-            // Invoke verification method
-            bool userExist = exist_user(id, name);
-
-            if (userExist) {
-                ShardedLogger::get().info_fast(
-                    ShardId, "Verification successful for {} {}", name, id);
-                // Send back verified message with verified=true
-                buffer = get_buffer(identity, true);
-            } else {
-                ShardedLogger::get().info_fast(
-                    ShardId, "Verification failed for {} {}", name, id);
-                // Send back message with verified=false
-                buffer = get_buffer(identity, false);
-            }
-        }
-        // Check if this is an "Add User in System" request with verified=false
-        else if (msgType == "Add User in System" && !isVerified) {
-            std::string name = identity.name().getCharValAsString();
-            std::string id = identity.id().getCharValAsString();
-
-            ShardedLogger::get().info_fast(
-                ShardId, "Processing Add User in System request for: {} {}",
-                name, id);
-
-            // Add user to database
-            bool identityAdded = add_identity(identity);
-
-            if (identityAdded) {
-                ShardedLogger::get().info_fast(
-                    ShardId, "User addition successful for {} {}", name, id);
-                // Send back response with verified=true (user added
-                // successfully)
-                buffer = get_buffer(identity, true);
-            } else {
-                ShardedLogger::get().info_fast(
-                    ShardId, "User addition failed for {} {}", name, id);
-                // Send back response with verified=false (user addition failed)
-                buffer = get_buffer(identity, false);
-            }
-        } else if (isVerified) {
-            ShardedLogger::get().info_fast(
-                ShardId, "Identity already verified: {}",
-                identity.name().getCharValAsString());
-        } else {
-            ShardedLogger::get().info_fast(
-                ShardId, "Message type '{}' - no action needed", msgType);
-        }
-    } else {
-        ShardedLogger::get().error_fast(ShardId,
-                                        "[Decoder] Unexpected template ID: {}",
-                                        msgHeader.templateId());
-    }
-    return buffer;
+    return respond_raw(base, fragmentData.offset, fragmentData.length);
 }
 
 // Check if user exists in database
@@ -227,6 +147,63 @@ bool MessageHandler::add_identity(
             ShardId, "Database error while adding user: {}", e.what());
         return false;
     }
+}
+
+std::vector<char> MessageHandler::respond_raw(char *base, int32_t offset,
+                                              int32_t length) noexcept {
+    std::vector<char> buffer;
+
+    messages::MessageHeader msgHeader;
+    char *start = base + offset;
+
+    msgHeader.wrap(start, 0, 0, length);
+    size_t msgOffset = msgHeader.encodedLength();
+
+    if (msgHeader.templateId() == messages::IdentityMessage::sbeTemplateId()) {
+        messages::IdentityMessage identity;
+        identity.wrapForDecode(start, msgOffset, msgHeader.blockLength(),
+                               msgHeader.version(), length);
+        log_identity(identity);
+
+        std::string msgType = identity.msg().getCharValAsString();
+        bool isVerified =
+            string_to_bool(identity.verified().getCharValAsString());
+
+        if (msgType == "Identity Verification Request" && !isVerified) {
+            std::string name = identity.name().getCharValAsString();
+            std::string id = identity.id().getCharValAsString();
+
+            ShardedLogger::get().info_fast(
+                ShardId, "Processing Identity Verification Request for: {} {}",
+                name, id);
+
+            bool userExist = exist_user(id, name);
+            buffer = get_buffer(identity, userExist);
+        } else if (msgType == "Add User in System" && !isVerified) {
+            std::string name = identity.name().getCharValAsString();
+            std::string id = identity.id().getCharValAsString();
+
+            ShardedLogger::get().info_fast(
+                ShardId, "Processing Add User in System request for: {} {}",
+                name, id);
+
+            bool identityAdded = add_identity(identity);
+            buffer = get_buffer(identity, identityAdded);
+        } else if (isVerified) {
+            ShardedLogger::get().info_fast(
+                ShardId, "Identity already verified: {}",
+                identity.name().getCharValAsString());
+        } else {
+            ShardedLogger::get().info_fast(
+                ShardId, "Message type '{}' - no action needed", msgType);
+        }
+    } else {
+        ShardedLogger::get().error_fast(ShardId,
+                                        "[Decoder] Unexpected template ID: {}",
+                                        msgHeader.templateId());
+    }
+
+    return buffer;
 }
 
 // Send response message

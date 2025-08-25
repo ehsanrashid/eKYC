@@ -33,6 +33,11 @@ class eKYCEngine final {
     std::unique_ptr<aeron_wrapper::Subscription::BackgroundPoller>
         _backgroundPoller;
 
+    // SPSC ring consumer
+    std::unique_ptr<aeron_wrapper::RingBuffer> _ring;
+    std::unique_ptr<std::thread> _consumerThread;
+    void consumer_loop() noexcept;
+
     std::atomic<bool> _running;
     std::uint64_t _packetsReceived;
 

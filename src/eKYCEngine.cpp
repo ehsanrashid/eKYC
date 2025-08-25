@@ -2,8 +2,10 @@
 
 #include <exception>
 #include <iostream>
+#include <thread>
 
 #include "Config.h"
+#include "concurrent/logbuffer/Header.h"
 #include "loggerlib.h"
 
 eKYCEngine::eKYCEngine() noexcept
@@ -24,6 +26,8 @@ eKYCEngine::eKYCEngine() noexcept
         _publication = _aeron->create_publication(publicationChannel,  //
                                                   cfg.PUBLICATION_STREAM_ID);
 
+        _ring = std::make_unique<aeron_wrapper::RingBuffer>(1 << 20);
+
         _running = true;
     } catch (const std::exception &e) {
         ShardedLogger::get().info_fast(ShardId, "Error: {}", e.what());
@@ -36,11 +40,14 @@ void eKYCEngine::start() noexcept {
     if (!_running) return;
 
     ShardedLogger::get().info_fast(ShardId, "Starting eKYC engine...");
-    // Start background msg processing
+
     _backgroundPoller = _subscription->start_background_polling(
         [this](const aeron_wrapper::FragmentData &fragmentData) {
-            process_message(fragmentData);
+            if (_ring) _ring->write_buffer(fragmentData);
         });
+
+    _consumerThread =
+        std::make_unique<std::thread>(&eKYCEngine::consumer_loop, this);
 }
 
 void eKYCEngine::stop() noexcept {
@@ -49,9 +56,38 @@ void eKYCEngine::stop() noexcept {
     if (_backgroundPoller) {
         _backgroundPoller->stop();
     }
-
     _running = false;
+
+    if (_consumerThread && _consumerThread->joinable()) {
+        _consumerThread->join();
+    }
+
     ShardedLogger::get().info_fast(ShardId, "eKYC engine stopped.");
+}
+
+void eKYCEngine::consumer_loop() noexcept {
+    while (_running) {
+        if (_ring) {
+            int processed = 0;
+            _ring->read_buffer([this, &processed](int8_t /*msgType*/,
+                                                  char *base, int32_t offset,
+                                                  int32_t length,
+                                                  int32_t capacity) -> bool {
+                aeron::concurrent::AtomicBuffer ab(
+                    reinterpret_cast<std::uint8_t *>(base), capacity);
+                aeron::concurrent::logbuffer::Header hdr(0, 0, nullptr);
+                aeron_wrapper::FragmentData fd{ab, length, offset, hdr};
+                process_message(fd);
+                ++processed;
+                return true;
+            });
+            if (processed == 0) {
+                std::this_thread::sleep_for(std::chrono::microseconds(50));
+            }
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
 }
 
 void eKYCEngine::process_message(

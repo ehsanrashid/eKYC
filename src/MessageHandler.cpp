@@ -44,7 +44,7 @@ MessageHandler::MessageHandler() noexcept {
         ;
 
         auto pgDb = DatabaseFactory::create("postgresql", pgConfig);
-        _pgDbManager = DatabaseManager(std::move(pgDb));
+        _pgDbManager = std::make_unique<DatabaseManager>(std::move(pgDb));
 
         ShardedLogger::get().info_fast(ShardId, "Connected to PostGreSQL");
     } catch (const std::exception &e) {
@@ -150,7 +150,7 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto res = _pgDbManager->exec(selectQuery);
+        auto res = (*_pgDbManager)->exec(selectQuery);
         if (!res) {
             ShardedLogger::get().error_fast(ShardId, "DB exec returned null");
             return false;
@@ -216,7 +216,7 @@ bool MessageHandler::add_identity(
             type + "', '" + identityNumber + "', '" + name + "', '" +
             dateOfIssue + "', '" + dateOfExpiry + "', '" + address + "')";
 
-        _pgDbManager->exec(insertQuery);
+        (*_pgDbManager)->exec(insertQuery);
 
         ShardedLogger::get().info_fast(
             ShardId, "User successfully added to system: {} {} ({})", name,

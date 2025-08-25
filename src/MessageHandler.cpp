@@ -55,18 +55,17 @@ std::vector<char> MessageHandler::respond(
     std::vector<char> buffer;
 
     messages::MessageHeader msgHeader;
-    msgHeader.wrap(reinterpret_cast<char *>(const_cast<uint8_t *>(
-                       fragmentData.atomicBuffer.buffer())),
-                   0, 0, fragmentData.length);
+    char *base = reinterpret_cast<char *>(
+        const_cast<uint8_t *>(fragmentData.atomicBuffer.buffer()));
+    char *start = base + fragmentData.offset;
+
+    msgHeader.wrap(start, 0, 0, fragmentData.length);
     size_t offset = msgHeader.encodedLength();
 
     if (msgHeader.templateId() == messages::IdentityMessage::sbeTemplateId()) {
         messages::IdentityMessage identity;
-        identity.wrapForDecode(reinterpret_cast<char *>(const_cast<uint8_t *>(
-                                   fragmentData.atomicBuffer.buffer())),
-                               offset, msgHeader.blockLength(),
+        identity.wrapForDecode(start, offset, msgHeader.blockLength(),
                                msgHeader.version(), fragmentData.length);
-
         log_identity(identity);
 
         std::string msgType = identity.msg().getCharValAsString();
@@ -130,7 +129,6 @@ std::vector<char> MessageHandler::respond(
             ShardedLogger::get().info_fast(
                 ShardId, "Message type '{}' - no action needed", msgType);
         }
-
     } else {
         ShardedLogger::get().error_fast(ShardId,
                                         "[Decoder] Unexpected template ID: {}",
@@ -151,8 +149,19 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
             "'" +
             identityNumber + "' AND name = '" + name + "'";
 
-        auto pgResult =
-            dynamic_cast<PostgreResult *>(dbManager->exec(selectQuery).get());
+        auto res = dbManager->exec(selectQuery);
+        if (!res) {
+            ShardedLogger::get().error_fast(ShardId, "DB exec returned null");
+            return false;
+        }
+
+        auto pgResult = dynamic_cast<PostgreResult *>(res.get());
+        if (!pgResult) {
+            ShardedLogger::get().error_fast(ShardId,
+                                            "Unexpected DB result type");
+            return false;
+        }
+
         bool exists = !pgResult->empty();
 
         ShardedLogger::get().info_fast(

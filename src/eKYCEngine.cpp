@@ -27,7 +27,7 @@ eKYCEngine::eKYCEngine() noexcept
                                                   cfg.PUBLICATION_STREAM_ID);
 
         _ring = std::make_unique<aeron_wrapper::RingBuffer>(
-            Config::get().MAX_RING_BUFFER_SIZE);
+            cfg.MAX_RING_BUFFER_SIZE);
 
         _running = true;
     } catch (const std::exception &e) {

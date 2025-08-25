@@ -9,15 +9,18 @@
 
 // Local Headers include
 #include "Config.h"
+#include "DatabaseFactory.h"
 #include "eKYCEngine.h"
-#include "loggerwrapper.h"
+#include "loggerlib.h"
 
 const int ShardId = Config::get().MAIN_THREAD_SHARD_ID;
 
-LoggerWrapper Log(1, Config::get().LOG_DIR, 0);
-
 int main(int argc, char** argv) {
-    Log.set_log_level(ShardId, LogLevel::DEBUG);
+    ShardedLogger::get().initialize(1, "logs/sharded_app");
+    ShardedLogger::get().set_log_level_all(ShardedLogger::LogLevel::DEBUG);
+
+    // Initialize the factory with default database types
+    DatabaseFactory::initialize();
 
     std::atomic<bool> keepRunning{true};
     // Start input monitoring thread
@@ -40,7 +43,7 @@ int main(int argc, char** argv) {
         eKYC->stop();
         return 0;
     } catch (const std::exception& e) {
-        Log.error_fast(ShardId, "Error: {}", e.what());
+        ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
         return 1;
     }
 }

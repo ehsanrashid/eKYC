@@ -6,12 +6,12 @@
 #include <string>
 #include <vector>
 
+#include "DatabaseManager.h"
 #include "aeron_wrapper.h"
-#include "loggerwrapper.h"
-#include "pg_wrapper.h"
+#include "loggerlib.h"
 
 extern const int ShardId;
-extern LoggerWrapper Log;
+
 // Forward declaration
 namespace messages {
 class IdentityMessage;
@@ -32,5 +32,5 @@ class MessageHandler final {
                                  bool verificationResult) noexcept;
 
    private:
-    std::unique_ptr<pg_wrapper::Database> _db;
+    std::unique_ptr<DatabaseManager> _pgDbManager;
 };

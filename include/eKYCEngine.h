@@ -8,10 +8,8 @@
 
 #include "MessageHandler.h"
 #include "aeron_wrapper.h"
-#include "loggerwrapper.h"
 
 extern const int ShardId;
-extern LoggerWrapper Log;
 
 class eKYCEngine final {
    public:

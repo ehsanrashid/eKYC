@@ -59,9 +59,7 @@ void eKYCEngine::process_message(
     ++_packetsReceived;
     try {
         auto buffer = _messageHandler.respond(fragmentData);
-        if (!buffer.empty()) {
-            send_response(buffer);
-        }
+        send_response(buffer);
     } catch (const std::exception &e) {
         ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
     }
@@ -69,6 +67,8 @@ void eKYCEngine::process_message(
 
 void eKYCEngine::send_response(std::vector<char> &buffer) noexcept {
     if (!_publication) return;
+
+    if (buffer.empty()) return;
 
     auto result = _publication->offer(
         reinterpret_cast<const uint8_t *>(buffer.data()), buffer.size());

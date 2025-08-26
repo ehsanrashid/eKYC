@@ -1,16 +1,14 @@
 #include "MessageFlow.h"
 
-#include <string>
-
 #include "loggerlib.h"
 
 // Static member definition
 std::unordered_map<MessageType, std::vector<MessageFlow::Step>>
-    MessageFlow::registry;
+    MessageFlow::_registry;
 
 void MessageFlow::register_flow(MessageType msgType,
                                 std::vector<Step> steps) noexcept {
-    registry[msgType] = std::move(steps);
+    _registry[msgType] = std::move(steps);
 }
 
 void MessageFlow::initialize() noexcept {
@@ -38,12 +36,12 @@ void MessageFlow::initialize() noexcept {
 }
 
 void MessageFlow::execute(const Message& msg) noexcept {
-    auto itr = registry.find(msg.msgType);
+    auto itr = _registry.find(msg.msgType);
 
-    if (itr == registry.end()) {
+    if (itr == _registry.end()) {
         qLogger::get().error_fast(
             "No flow registered for message type {} and message id {}",
-            std::to_string(msg.msgType), msg.msgId);
+            msgtype_to_string(msg.msgType), msg.msgId);
         return;
     }
 
@@ -51,10 +49,12 @@ void MessageFlow::execute(const Message& msg) noexcept {
         StepResult res = step(msg);
         if (res == StepResult::FAILED) {
             qLogger::get().error_fast("Flow Msg {} {} stopped due to failure",
-                                      std::to_string(msg.msgType), msg.msgId);
+                                      msgtype_to_string(msg.msgType),
+                                      msg.msgId);
             return;
         }
     }
+
     qLogger::get().info_fast("Flow Msg {} {} completed successfully",
-                             std::to_string(msg.msgType), msg.msgId);
+                             msgtype_to_string(msg.msgType), msg.msgId);
 }

@@ -44,9 +44,9 @@ int main(int argc, char** argv) {
         if (inputThread.joinable()) inputThread.join();
 
         eKYC->stop();
-        return 0;
+        return EXIT_SUCCESS;
     } catch (const std::exception& e) {
         ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
-        return 1;
+        return EXIT_FAILURE;
     }
 }

@@ -10,8 +10,6 @@
 #include "aeron_wrapper.h"
 #include "loggerlib.h"
 
-extern const int ShardId;
-
 // Forward declaration
 namespace messages {
 class IdentityMessage;

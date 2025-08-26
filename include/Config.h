@@ -14,7 +14,6 @@ class Config {
     size_t ROTATIING_LOG_SIZE;
 
     // Sharding
-    int MAIN_THREAD_SHARD_ID;
     int NUM_SHARDS;
     size_t MAX_RING_BUFFER_SIZE;
 
@@ -86,8 +85,6 @@ class Config {
             LOG_DIR = value;
         else if (key == "ROTATIING_LOG_SIZE")
             ROTATIING_LOG_SIZE = std::stoull(value);
-        else if (key == "MAIN_THREAD_SHARD_ID")
-            MAIN_THREAD_SHARD_ID = std::stoi(value);
         else if (key == "NUM_SHARDS")
             NUM_SHARDS = std::stoi(value);
         else if (key == "MAX_RING_BUFFER_SIZE")

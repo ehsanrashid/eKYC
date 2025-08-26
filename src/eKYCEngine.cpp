@@ -11,8 +11,7 @@ eKYCEngine::eKYCEngine() noexcept
     try {
         auto &cfg = Config::get();
         _aeron = std::make_unique<aeron_wrapper::Aeron>(cfg.AERON_DIR);
-        ShardedLogger::get().info_fast(ShardId,
-                                       "Connected to Aeron Media Driver...");
+        qLogger::get().info_fast("Connected to Aeron Media Driver...");
         std::string subscriptionChannel =
             "aeron:" + cfg.AERON_PROTOCOL + "?endpoint=" + cfg.SUBSCRIPTION_IP +
             ":" + std::to_string(cfg.SUBSCRIPTION_PORT);
@@ -26,7 +25,7 @@ eKYCEngine::eKYCEngine() noexcept
 
         _running = true;
     } catch (const std::exception &e) {
-        ShardedLogger::get().info_fast(ShardId, "Error: {}", e.what());
+        qLogger::get().info_fast("Error: {}", e.what());
     }
 }
 
@@ -35,7 +34,7 @@ eKYCEngine::~eKYCEngine() noexcept { stop(); }
 void eKYCEngine::start() noexcept {
     if (!_running) return;
 
-    ShardedLogger::get().info_fast(ShardId, "Starting eKYC engine...");
+    qLogger::get().info_fast("Starting eKYC engine...");
     // Start background msg processing
     _backgroundPoller = _subscription->start_background_polling(
         [this](const aeron_wrapper::FragmentData &fragmentData) {
@@ -51,7 +50,7 @@ void eKYCEngine::stop() noexcept {
     }
 
     _running = false;
-    ShardedLogger::get().info_fast(ShardId, "eKYC engine stopped.");
+    qLogger::get().info_fast("eKYC engine stopped.");
 }
 
 void eKYCEngine::process_message(
@@ -61,7 +60,7 @@ void eKYCEngine::process_message(
         auto buffer = _messageHandler.respond(fragmentData);
         send_response(buffer);
     } catch (const std::exception &e) {
-        ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
+        qLogger::get().error_fast("Error: {}", e.what());
     }
 }
 
@@ -73,9 +72,9 @@ void eKYCEngine::send_response(std::vector<char> &buffer) noexcept {
     auto result = _publication->offer(
         reinterpret_cast<const uint8_t *>(buffer.data()), buffer.size());
     if (result == aeron_wrapper::PublicationResult::SUCCESS) {
-        ShardedLogger::get().info_fast(ShardId, "Response sent successfully");
+        qLogger::get().info_fast("Response sent successfully");
     } else {
-        ShardedLogger::get().error_fast(ShardId, "Failed to send response: {}",
-                                        pubresult_to_string(result));
+        qLogger::get().error_fast("Failed to send response: {}",
+                                  pubresult_to_string(result));
     }
 }

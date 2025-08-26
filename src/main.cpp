@@ -14,11 +14,8 @@
 #include "eKYCEngine.h"
 #include "loggerlib.h"
 
-const int ShardId = Config::get().MAIN_THREAD_SHARD_ID;
-
 int main(int argc, char** argv) {
-    ShardedLogger::get().initialize(1, "logs/sharded_app");
-    ShardedLogger::get().set_log_level_all(ShardedLogger::LogLevel::DEBUG);
+    qLogger::get().initialize("logs/ekyc_engine", LogLevel::DEBUG);
 
     // Initialize the factory with default database types
     DatabaseFactory::initialize();
@@ -46,7 +43,7 @@ int main(int argc, char** argv) {
         eKYC->stop();
         return EXIT_SUCCESS;
     } catch (const std::exception& e) {
-        ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
+        qLogger::get().error_fast("Error: {}", e.what());
         return EXIT_FAILURE;
     }
 }

@@ -9,8 +9,6 @@
 #include "MessageHandler.h"
 #include "aeron_wrapper.h"
 
-extern const int ShardId;
-
 class eKYCEngine final {
    public:
     eKYCEngine() noexcept;

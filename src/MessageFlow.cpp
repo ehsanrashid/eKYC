@@ -1,6 +1,9 @@
 #include "MessageFlow.h"
 
 #include <iostream>
+#include <string>
+
+#include "loggerlib.h"
 
 // Static member definition
 std::unordered_map<MessageType, std::vector<MessageFlow::Step>>
@@ -39,18 +42,20 @@ void MessageFlow::execute(const Message& msg) noexcept {
     auto itr = registry.find(msg.msgType);
 
     if (itr == registry.end()) {
-        std::cerr << "No flow registered for message type " << msg.msgType
-                  << "\n";
+        qLogger::get().error_fast(
+            "No flow registered for message type {} and message id {}",
+            std::to_string(msg.msgType), msg.msgId);
         return;
     }
 
     for (auto& step : itr->second) {
         StepResult res = step(msg);
         if (res == StepResult::FAILED) {
-            std::cerr << "[Flow] Msg " << msg.msgId
-                      << " stopped due to failure\n";
+            qLogger::get().error_fast("Flow Msg {} {} stopped due to failure",
+                                      std::to_string(msg.msgType), msg.msgId);
             return;
         }
     }
-    std::cout << "[Flow] Msg " << msg.msgId << " completed successfully\n";
+    qLogger::get().info_fast("Flow Msg {} {} completed successfully",
+                             std::to_string(msg.msgType), msg.msgId);
 }

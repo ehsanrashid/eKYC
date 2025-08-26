@@ -15,7 +15,7 @@
 #include "loggerlib.h"
 
 int main(int argc, char** argv) {
-    qLogger::get().initialize("logs/ekyc_engine", LogLevel::DEBUG);
+    qLogger::get().initialize("logs/ekyc_engine.log", LogLevel::DEBUG);
 
     // Initialize the factory with default database types
     DatabaseFactory::initialize();

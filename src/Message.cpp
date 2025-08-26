@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "loggerlib.h"
+
 Message::Message(MessageType mType, int mId) noexcept
     : msgType(mType), msgId(mId) {}
 
@@ -13,10 +15,10 @@ OrderMessage::OrderMessage(int msgId, std::string sym, int qty,
       price(prc) {}
 
 StepResult OrderMessage::validate() const noexcept {
-    std::cout << "[Order " << msgId << "] Validate symbol=" << symbol << "\n";
+    qLogger::get().info_fast("Order {} Validate symbol={}", msgId, symbol);
 
     if (quantity <= 0 || price <= 0.0) {
-        std::cerr << "[Order " << msgId << "] Invalid quantity/price\n";
+        qLogger::get().error_fast("Order {} Invalid quantity/price", msgId);
         return StepResult::FAILED;
     }
     return StepResult::SUCCESS;
@@ -26,11 +28,11 @@ CancelMessage::CancelMessage(int msgId, int cId) noexcept
     : Message(MT_CANCEL, msgId), cancelId(cId) {}
 
 StepResult CancelMessage::validate() const noexcept {
-    std::cout << "[Cancel " << msgId << "] Validate cancelId=" << cancelId
-              << "\n";
+    qLogger::get().info_fast("Cancel {} Validate cancelId= {}", msgId,
+                             cancelId);
 
     if (cancelId <= 0) {
-        std::cerr << "[Cancel " << msgId << "] Invalid cancelId\n";
+        qLogger::get().error_fast("Cancel {} Invalid cancelId", msgId);
         return StepResult::FAILED;
     }
     return StepResult::SUCCESS;

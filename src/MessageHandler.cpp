@@ -7,6 +7,7 @@
 #include "DatabaseFactory.h"
 #include "PostgreDatabase.h"
 #include "helper.h"
+#include "loggerlib.h"
 #include "messages/Char64str.h"
 #include "messages/IdentityMessage.h"
 #include "messages/MessageHeader.h"

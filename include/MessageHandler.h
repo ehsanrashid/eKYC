@@ -8,7 +8,6 @@
 
 #include "DatabaseManager.h"
 #include "aeron_wrapper.h"
-#include "loggerlib.h"
 
 // Forward declaration
 namespace messages {

@@ -10,6 +10,7 @@
 // Local Headers include
 #include "Config.h"
 #include "DatabaseFactory.h"
+#include "MessageFlow.h"
 #include "eKYCEngine.h"
 #include "loggerlib.h"
 
@@ -21,6 +22,8 @@ int main(int argc, char** argv) {
 
     // Initialize the factory with default database types
     DatabaseFactory::initialize();
+    // Initialize the message flow
+    MessageFlow::initialize();
 
     std::atomic<bool> keepRunning{true};
     // Start input monitoring thread

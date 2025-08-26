@@ -1,7 +1,5 @@
 #include "Message.h"
 
-#include <iostream>
-
 #include "loggerlib.h"
 
 Message::Message(MessageType mType, int mId) noexcept

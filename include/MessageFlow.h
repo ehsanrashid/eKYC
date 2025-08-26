@@ -8,8 +8,10 @@
 #include "Types.h"
 
 class MessageFlow final {
-   public:
+   private:
     using Step = std::function<StepResult(const Message&)>;
+
+    static std::unordered_map<MessageType, std::vector<Step>> registry;
 
    private:
     MessageFlow() noexcept = delete;
@@ -27,7 +29,4 @@ class MessageFlow final {
     static void initialize() noexcept;
 
     static void execute(const Message& msg) noexcept;
-
-   private:
-    static std::unordered_map<MessageType, std::vector<Step>> registry;
 };

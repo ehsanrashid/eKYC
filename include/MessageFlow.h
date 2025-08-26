@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <vector>
 
 #include "Message.h"
 #include "Types.h"

@@ -1,7 +1,6 @@
 #include "eKYCEngine.h"
 
 #include <exception>
-#include <iostream>
 
 #include "Config.h"
 #include "loggerlib.h"

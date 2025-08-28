@@ -16,21 +16,21 @@ option(WITH_IWYU "Run include-what-you-use analysis" OFF)
 if(WITH_IWYU)
     find_program(IWYU_PATH NAMES include-what-you-use iwyu)
 
-    if(IWYU_PATH)
+    set(IWYU_TOOL_PATH "/usr/share/include-what-you-use/iwyu_tool.py")
+    if(NOT EXISTS ${IWYU_TOOL_PATH})
+        set(IWYU_TOOL_PATH "${CMAKE_SOURCE_DIR}/iwyu_tool.py")
+    endif()
+
+    if(IWYU_PATH AND EXISTS ${IWYU_TOOL_PATH})
         message(STATUS "Found IWYU: ${IWYU_PATH}")
-
-        # Ensure compile_commands.json is written
-        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-        # Define a custom target "run-iwyu"
+        message(STATUS "Using IWYU tool: ${IWYU_TOOL_PATH}")
         add_custom_target(run-iwyu
-            COMMAND python3 /usr/share/include-what-you-use/iwyu_tool.py
-                    -p ${CMAKE_BINARY_DIR} -j 4
+            COMMAND python3 ${IWYU_TOOL_PATH} -p ${CMAKE_BINARY_DIR} -j 4
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             COMMENT "Running include-what-you-use analysis..."
         )
     else()
-        message(WARNING "WITH_IWYU=ON but IWYU not found!")
+        message(WARNING "IWYU or iwyu_tool.py not found, skipping run-iwyu target")
     endif()
 endif()
 

@@ -372,7 +372,7 @@ The eKYC Engine follows a modern, asynchronous architecture:
 ### Component Responsibilities
 - **aeronWrapper:** High-performance messaging with automatic retry and connection management
 - **pgWrapper:** Database operations with connection pooling and prepared statements
-- **loggerLib:** Thread-safe, high-performance logging with file rotation
+- **quillLogger:** Thread-safe, high-performance logging with file rotation
 - **SBE Messages:** Zero-copy serialization for maximum throughput
 
 ---

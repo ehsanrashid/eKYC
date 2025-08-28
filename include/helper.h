@@ -20,6 +20,12 @@ inline bool string_to_bool(const std::string& str) noexcept {
     return b;
 }
 
+inline std::string bool_to_string(bool b) noexcept {
+    std::ostringstream oss;
+    oss << std::boolalpha << b;
+    return oss.str();
+}
+
 inline void trim(std::string& str) noexcept {
     str.erase(str.begin(),
               std::find_if(str.begin(), str.end(),

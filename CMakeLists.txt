@@ -11,6 +11,29 @@ find_package(aeronWrapper CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED libpqxx)
 
+option(WITH_IWYU "Run include-what-you-use analysis" OFF)
+
+if(WITH_IWYU)
+    find_program(IWYU_PATH NAMES include-what-you-use iwyu)
+
+    if(IWYU_PATH)
+        message(STATUS "Found IWYU: ${IWYU_PATH}")
+
+        # Ensure compile_commands.json is written
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+        # Define a custom target "run-iwyu"
+        add_custom_target(run-iwyu
+            COMMAND python3 /usr/share/include-what-you-use/iwyu_tool.py
+                    -p ${CMAKE_BINARY_DIR} -j 4
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Running include-what-you-use analysis..."
+        )
+    else()
+        message(WARNING "WITH_IWYU=ON but IWYU not found!")
+    endif()
+endif()
+
 # Collect source files
 file(GLOB SOURCES "src/*.cpp")
 

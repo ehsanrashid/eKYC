@@ -172,7 +172,7 @@ chmod +x install_dependencies.sh
    cd aeronWrapper
    mkdir build && cd build
    crm -rf build && mkdir build && cd build
-   cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=<path/to/aeronWrapper/install>
+   cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=<path_to_aeronWrapper/install>
    cmake --build . -j$(nproc)
    cmake --install .
    cd ../..
@@ -206,7 +206,7 @@ chmod +x install_dependencies.sh
    ```sh
    mkdir build
    cd build
-   cmake .. -DCMAKE_PREFIX_PATH=<path/to/aeronWrapper/install>
+   cmake .. -DCMAKE_PREFIX_PATH=<path_to_aeronWrapper/install>
    make -j$(nproc)
    ```
 
@@ -437,7 +437,7 @@ The eKYC Engine follows a modern, asynchronous architecture:
 ```sh
 # Verify all dependencies are installed
 ls /usr/local/lib/lib{aeronWrapper,pgWrapper,loggerlib}*
-ls /usr/local/include/{aeron_wrapper,pg_wrapper,logger}*
+ls /usr/local/include/{aeron_wrapper,pg_wrapper,loggerlib}*
 ```
 
 ---

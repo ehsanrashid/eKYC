@@ -25,7 +25,11 @@ if(WITH_IWYU)
         message(STATUS "Found IWYU: ${IWYU_PATH}")
         message(STATUS "Using IWYU tool: ${IWYU_TOOL_PATH}")
         add_custom_target(run-iwyu
-            COMMAND python3 ${IWYU_TOOL_PATH} -p ${CMAKE_BINARY_DIR} -j 4
+            COMMAND python3 ${IWYU_TOOL_PATH} -p ${CMAKE_BINARY_DIR} -j 4 --
+            -I/usr/lib/gcc/x86_64-linux-gnu/12/include
+            -I/usr/include/x86_64-linux-gnu
+            -I/usr/include
+            -I/usr/local/include
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             COMMENT "Running include-what-you-use analysis..."
         )

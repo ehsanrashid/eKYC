@@ -171,7 +171,7 @@ chmod +x install_dependencies.sh
    git clone https://github.com/ehsanrashid/aeronWrapper.git
    cd aeronWrapper
    mkdir build && cd build
-   cmake ..
+   cmake ..  -DCMAKE_PREFIX_PATH=</path/to/wrapper>
    make -j$(nproc)
    sudo make install
    cd ../..

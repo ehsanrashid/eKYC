@@ -423,9 +423,9 @@ The eKYC Engine follows a modern, asynchronous architecture:
   - Verify `aeronWrapper` library is linked: `ldd ./eKYC | grep aeron`
 
 - **Logger Not Found:**
-  - Verify loggerLib is installed: `ls /usr/local/lib/libloggerlib*`
-  - Check header exists: `ls /usr/local/include/logger*`
-  - Ensure library is linked: `ldd ./eKYC | grep logger`
+  - Verify loggerLib is installed: `ls /usr/local/lib/libquillLogger*`
+  - Check header exists: `ls /usr/local/include/loggerlib*`
+  - Ensure library is linked: `ldd ./eKYC | grep libquillLogger`
 
 ### Performance Issues
 - **Slow Database Queries:**
@@ -436,7 +436,7 @@ The eKYC Engine follows a modern, asynchronous architecture:
 ### Quick Dependency Check
 ```sh
 # Verify all dependencies are installed
-ls /usr/local/lib/lib{aeronWrapper,pgWrapper,loggerlib}*
+ls /usr/local/lib/lib{aeronWrapper,pgWrapper,quillLogger}*
 ls /usr/local/include/{aeron_wrapper,pg_wrapper,loggerlib}*
 ```
 

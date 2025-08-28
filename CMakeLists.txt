@@ -7,10 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find the wrapper package (installed to /usr/local or a custom prefix)
 find_package(aeronWrapper CONFIG REQUIRED)
 
-# Find libpqxx
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(PQXX REQUIRED libpqxx)
-
 # Collect source files
 file(GLOB SOURCES "src/*.cpp")
 
@@ -21,7 +17,6 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${CMAKE_SOURCE_DIR}/include
     /usr/local/include
-    ${PQXX_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

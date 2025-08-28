@@ -10,7 +10,7 @@ enum MessageType : std::int8_t {
     MT_CANCEL,
 };
 
-// Get publication constants as string for debugging
+// Get message type constants as string for debugging
 inline std::string msgtype_to_string(MessageType msgType) noexcept {
     switch (msgType) {
         case MessageType::MT_ORDER:

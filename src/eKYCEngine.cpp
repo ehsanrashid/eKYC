@@ -6,7 +6,7 @@
 #include "loggerlib.h"
 
 eKYCEngine::eKYCEngine() noexcept
-    : _running(false), _packetsReceived(0), _messageHandler() {
+    : _running(false), _messageReceived(0), _messageHandler() {
     try {
         auto &cfg = Config::get();
         _aeron = std::make_unique<aeron_wrapper::Aeron>(cfg.AERON_DIR);
@@ -54,7 +54,7 @@ void eKYCEngine::stop() noexcept {
 
 void eKYCEngine::process_message(
     const aeron_wrapper::FragmentData &fragmentData) noexcept {
-    ++_packetsReceived;
+    ++_messageReceived;
     try {
         auto buffer = _messageHandler.respond(fragmentData);
         send_response(buffer);

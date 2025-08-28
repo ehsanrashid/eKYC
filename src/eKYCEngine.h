@@ -31,7 +31,7 @@ class eKYCEngine final {
         _backgroundPoller;
 
     std::atomic<bool> _running;
-    std::uint64_t _packetsReceived;
+    std::uint64_t _messageReceived;
 
     MessageHandler _messageHandler;
 };

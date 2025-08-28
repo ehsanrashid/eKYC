@@ -7,14 +7,13 @@
 
 #include "helper.h"
 
-class Config {
+class Config final {
    public:
     // Logging
     std::string LOG_DIR;
     size_t ROTATIING_LOG_SIZE;
 
     // Sharding
-    int MAIN_THREAD_SHARD_ID;
     int NUM_SHARDS;
     size_t MAX_RING_BUFFER_SIZE;
 
@@ -50,8 +49,12 @@ class Config {
         load("../config.txt");  // Change to your path
     }
 
-    Config(const Config&) = delete;
-    Config& operator=(const Config&) = delete;
+    ~Config() noexcept = default;
+
+    Config(const Config&) noexcept = delete;
+    Config& operator=(const Config&) noexcept = delete;
+    Config(Config&&) noexcept = delete;
+    Config& operator=(Config&&) noexcept = delete;
 
     void load(const std::string& filename) {
         std::ifstream file(filename);
@@ -86,8 +89,6 @@ class Config {
             LOG_DIR = value;
         else if (key == "ROTATIING_LOG_SIZE")
             ROTATIING_LOG_SIZE = std::stoull(value);
-        else if (key == "MAIN_THREAD_SHARD_ID")
-            MAIN_THREAD_SHARD_ID = std::stoi(value);
         else if (key == "NUM_SHARDS")
             NUM_SHARDS = std::stoi(value);
         else if (key == "MAX_RING_BUFFER_SIZE")

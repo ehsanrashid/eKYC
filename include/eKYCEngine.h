@@ -1,15 +1,12 @@
 #pragma once
 
 #include <atomic>
-#include <iosfwd>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "MessageHandler.h"
 #include "aeron_wrapper.h"
-
-extern const int ShardId;
 
 class eKYCEngine final {
    public:

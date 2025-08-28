@@ -1,12 +1,12 @@
 #include "MessageHandler.h"
 
 #include <exception>
-#include <iostream>
 
 #include "Config.h"
 #include "DatabaseFactory.h"
 #include "PostgreDatabase.h"
 #include "helper.h"
+#include "loggerlib.h"
 #include "messages/Char64str.h"
 #include "messages/IdentityMessage.h"
 #include "messages/MessageHeader.h"
@@ -14,23 +14,18 @@
 namespace {
 
 void log_identity(messages::IdentityMessage &identity) {
-    ShardedLogger::get().info_fast(ShardId, "msg: {}",
-                                   identity.msg().getCharValAsString());
-    ShardedLogger::get().info_fast(ShardId, "type: {}",
-                                   identity.type().getCharValAsString());
-    ShardedLogger::get().info_fast(ShardId, "id: {}",
-                                   identity.id().getCharValAsString());
-    ShardedLogger::get().info_fast(ShardId, "name: {}",
-                                   identity.name().getCharValAsString());
-    ShardedLogger::get().info_fast(ShardId, "dateOfIssue: {}",
-                                   identity.dateOfIssue().getCharValAsString());
-    ShardedLogger::get().info_fast(
-        ShardId, "dateOfExpiry: {}",
-        identity.dateOfExpiry().getCharValAsString());
-    ShardedLogger::get().info_fast(ShardId, "address: {}",
-                                   identity.address().getCharValAsString());
-    ShardedLogger::get().info_fast(ShardId, "verified: {}",
-                                   identity.verified().getCharValAsString());
+    qLogger::get().info_fast("msg: {}", identity.msg().getCharValAsString());
+    qLogger::get().info_fast("type: {}", identity.type().getCharValAsString());
+    qLogger::get().info_fast("id: {}", identity.id().getCharValAsString());
+    qLogger::get().info_fast("name: {}", identity.name().getCharValAsString());
+    qLogger::get().info_fast("dateOfIssue: {}",
+                             identity.dateOfIssue().getCharValAsString());
+    qLogger::get().info_fast("dateOfExpiry: {}",
+                             identity.dateOfExpiry().getCharValAsString());
+    qLogger::get().info_fast("address: {}",
+                             identity.address().getCharValAsString());
+    qLogger::get().info_fast("verified: {}",
+                             identity.verified().getCharValAsString());
 }
 
 }  // namespace
@@ -45,9 +40,9 @@ MessageHandler::MessageHandler() noexcept {
         auto pgDb = DatabaseFactory::create("postgresql", pgConfig);
         _pgDbManager = std::make_unique<DatabaseManager>(std::move(pgDb));
 
-        ShardedLogger::get().info_fast(ShardId, "Connected to PostGreSQL");
+        qLogger::get().info_fast("Connected to PostGreSQL");
     } catch (const std::exception &e) {
-        ShardedLogger::get().error_fast(ShardId, "Error: {}", e.what());
+        qLogger::get().error_fast("Error: {}", e.what());
     }
 }
 
@@ -81,21 +76,21 @@ std::vector<char> MessageHandler::respond(
             std::string name = identity.name().getCharValAsString();
             std::string id = identity.id().getCharValAsString();
 
-            ShardedLogger::get().info_fast(
-                ShardId, "Processing Identity Verification Request for: {} {}",
-                name, id);
+            qLogger::get().info_fast(
+                "Processing Identity Verification Request for: {} {}", name,
+                id);
 
             // Invoke verification method
             bool userExist = exist_user(id, name);
 
             if (userExist) {
-                ShardedLogger::get().info_fast(
-                    ShardId, "Verification successful for {} {}", name, id);
+                qLogger::get().info_fast("Verification successful for {} {}",
+                                         name, id);
                 // Send back verified message with verified=true
                 buffer = get_buffer(identity, true);
             } else {
-                ShardedLogger::get().info_fast(
-                    ShardId, "Verification failed for {} {}", name, id);
+                qLogger::get().info_fast("Verification failed for {} {}", name,
+                                         id);
                 // Send back message with verified=false
                 buffer = get_buffer(identity, false);
             }
@@ -105,37 +100,34 @@ std::vector<char> MessageHandler::respond(
             std::string name = identity.name().getCharValAsString();
             std::string id = identity.id().getCharValAsString();
 
-            ShardedLogger::get().info_fast(
-                ShardId, "Processing Add User in System request for: {} {}",
-                name, id);
+            qLogger::get().info_fast(
+                "Processing Add User in System request for: {} {}", name, id);
 
             // Add user to database
             bool identityAdded = add_identity(identity);
 
             if (identityAdded) {
-                ShardedLogger::get().info_fast(
-                    ShardId, "User addition successful for {} {}", name, id);
+                qLogger::get().info_fast("User addition successful for {} {}",
+                                         name, id);
                 // Send back response with verified=true (user added
                 // successfully)
                 buffer = get_buffer(identity, true);
             } else {
-                ShardedLogger::get().info_fast(
-                    ShardId, "User addition failed for {} {}", name, id);
+                qLogger::get().info_fast("User addition failed for {} {}", name,
+                                         id);
                 // Send back response with verified=false (user addition failed)
                 buffer = get_buffer(identity, false);
             }
         } else if (isVerified) {
-            ShardedLogger::get().info_fast(
-                ShardId, "Identity already verified: {}",
-                identity.name().getCharValAsString());
+            qLogger::get().info_fast("Identity already verified: {}",
+                                     identity.name().getCharValAsString());
         } else {
-            ShardedLogger::get().info_fast(
-                ShardId, "Message type '{}' - no action needed", msgType);
+            qLogger::get().info_fast("Message type '{}' - no action needed",
+                                     msgType);
         }
     } else {
-        ShardedLogger::get().error_fast(ShardId,
-                                        "[Decoder] Unexpected template ID: {}",
-                                        msgHeader.templateId());
+        qLogger::get().error_fast("[Decoder] Unexpected template ID: {}",
+                                  msgHeader.templateId());
     }
     return buffer;
 }
@@ -151,30 +143,27 @@ bool MessageHandler::exist_user(const std::string &identityNumber,
 
         auto res = (*_pgDbManager)->exec(selectQuery);
         if (!res) {
-            ShardedLogger::get().error_fast(ShardId, "DB exec returned null");
+            qLogger::get().error_fast("DB exec returned null");
             return false;
         }
 
         auto pgResult = dynamic_cast<PostgreResult *>(res.get());
         if (!pgResult) {
-            ShardedLogger::get().error_fast(ShardId,
-                                            "Unexpected DB result type");
+            qLogger::get().error_fast("Unexpected DB result type");
             return false;
         }
 
         bool exists = !pgResult->empty();
 
-        ShardedLogger::get().info_fast(
-            ShardId,
+        qLogger::get().info_fast(
             exists ? "Verified: {} {} found in database"
                    : "NOT verified: {} {} not found in database",
             identityNumber, name);
 
         return exists;
     } catch (const std::exception &e) {
-        ShardedLogger::get().error_fast(
-            ShardId, "Database query error during user existence check: {}",
-            e.what());
+        qLogger::get().error_fast(
+            "Database query error during user existence check: {}", e.what());
         return false;
     }
 }
@@ -190,20 +179,19 @@ bool MessageHandler::add_identity(
         std::string dateOfExpiry = identity.dateOfExpiry().getCharValAsString();
         std::string address = identity.address().getCharValAsString();
 
-        ShardedLogger::get().info_fast(
-            ShardId, "Adding user to system: name={}, id={}, type={}", name,
+        qLogger::get().info_fast(
+            "Adding user to system: name={}, id={}, type={}", name,
             identityNumber, type);
 
         // Check if user already exists using the reusable method
         if (exist_user(identityNumber, name)) {
-            ShardedLogger::get().info_fast(
-                ShardId, "User already exists in system: {} {} ({})", name,
+            qLogger::get().info_fast(
+                "User already exists in system: {} {} ({})", name,
                 identityNumber, type);
             return false;  // User already exists, don't add duplicate
         }
 
-        ShardedLogger::get().info_fast(
-            ShardId,
+        qLogger::get().info_fast(
             "User not found in system, proceeding with addition: {} {}", name,
             identityNumber);
 
@@ -217,14 +205,14 @@ bool MessageHandler::add_identity(
 
         (*_pgDbManager)->exec(insertQuery);
 
-        ShardedLogger::get().info_fast(
-            ShardId, "User successfully added to system: {} {} ({})", name,
+        qLogger::get().info_fast(
+            "User successfully added to system: {} {} ({})", name,
             identityNumber, type);
 
         return true;
     } catch (const std::exception &e) {
-        ShardedLogger::get().error_fast(
-            ShardId, "Database error while adding user: {}", e.what());
+        qLogger::get().error_fast("Database error while adding user: {}",
+                                  e.what());
         return false;
     }
 }
@@ -269,8 +257,7 @@ std::vector<char> MessageHandler::get_buffer(
             originalIdentity.address().getCharValAsString());
         identity.verified().putCharVal(verificationResult ? "true" : "false");
     } catch (const std::exception &e) {
-        ShardedLogger::get().error_fast(ShardId, "Error sending response: {}",
-                                        e.what());
+        qLogger::get().error_fast("Error sending response: {}", e.what());
     }
     return buffer;
 }

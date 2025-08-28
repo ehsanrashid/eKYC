@@ -1,16 +1,12 @@
 #pragma once
 
 #include <atomic>
-#include <iosfwd>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "DatabaseManager.h"
 #include "aeron_wrapper.h"
-#include "loggerlib.h"
-
-extern const int ShardId;
 
 // Forward declaration
 namespace messages {

@@ -6,16 +6,16 @@
 #include <string>
 
 inline bool string_to_bool(const std::string& str) noexcept {
-    std::istringstream is(str);
+    std::istringstream iss(str);
     bool b;
-    is >> std::boolalpha >> b;  // enables reading "true"/"false"
-    if (is.fail()) {
+    iss >> std::boolalpha >> b;  // enables reading "true"/"false"
+    if (iss.fail()) {
         // Try as integer
-        is.clear();
-        is.str(str);
+        iss.clear();
+        iss.str(str);
         int i;
-        is >> i;
-        return i != 0;
+        iss >> i;
+        b = (i != 0);
     }
     return b;
 }
